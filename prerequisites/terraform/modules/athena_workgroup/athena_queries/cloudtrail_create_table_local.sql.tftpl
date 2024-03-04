@@ -1,0 +1,73 @@
+-- Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+-- SPDX-License-Identifier: MIT-0
+CREATE EXTERNAL TABLE IF NOT EXISTS cloudtrail_org_logs (
+	eventVersion STRING,
+	userIdentity STRUCT<
+		type: STRING,
+		principalId: STRING,
+		arn: STRING,
+		accountId: STRING,
+		invokedBy: STRING,
+		accessKeyId: STRING,
+		userName: STRING,
+		sessionContext: STRUCT<
+			attributes: STRUCT<
+				mfaAuthenticated: STRING,
+				creationDate: STRING>,
+			sessionIssuer: STRUCT<
+				type: STRING,
+				principalId: STRING,
+				arn: STRING,
+				accountId: STRING,
+				userName: STRING>>>,
+	eventTime STRING,
+	eventSource STRING,
+	eventName STRING,
+	awsRegion STRING,
+	sourceIpAddress STRING,
+	userAgent STRING,
+	errorCode STRING,
+	errorMessage STRING,
+	requestParameters STRING,
+	responseElements STRING,
+	additionalEventData STRING,
+	requestId STRING,
+	eventId STRING,
+	readOnly STRING,
+	resources ARRAY<STRUCT<
+		arn: STRING,
+		accountId: STRING,
+		type: STRING>>,
+	eventType STRING,
+	apiVersion STRING,
+	recipientAccountId STRING,
+	serviceEventDetails STRING,
+	sharedEventID STRING,
+	vpcEndpointId STRING,
+	tlsDetails STRUCT<
+		tlsVersion:string,
+		cipherSuite:string,
+		clientProvidedHostHeader:string
+	>
+)
+PARTITIONED BY (
+`p_account` string,
+`p_region` string,
+`p_date` string
+)
+ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe'
+STORED AS INPUTFORMAT 'com.amazon.emr.cloudtrail.CloudTrailInputFormat'
+OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION 's3://${tftpl_cloudtrail_bucket_name}/AWSLogs/'
+TBLPROPERTIES (
+	'projection.enabled'='true',
+	'projection.p_date.type'='date',
+	'projection.p_date.format'='yyyy/MM/dd', 
+	'projection.p_date.interval'='1', 
+	'projection.p_date.interval.unit'='DAYS', 
+	'projection.p_date.range'='2022/01/01,NOW', 
+	'projection.p_region.type'='enum',
+	'projection.p_region.values'='${tftpl_cloudtrail_enum_region}',
+	'projection.p_account.type'='injected',
+	'storage.location.template'='s3://${tftpl_cloudtrail_bucket_name}/AWSLogs/$${p_account}/CloudTrail/$${p_region}/$${p_date}'
+)

@@ -1,0 +1,21 @@
+[tool.ruff]
+ignore = [
+    "E501",
+    # E731 - Do not assign a `lambda` expression, use a `def`
+    "E731"
+]
+
+
+[[tool.mypy.overrides]]
+module = [
+    "boto3.*",
+    "botocore.*",
+    "awswrangler.*",
+    "jinja2.*",
+    "data_perimeter_helper.*"
+]
+ignore_missing_imports = true
+
+
+[tool.bandit]
+skips = ["B101"]

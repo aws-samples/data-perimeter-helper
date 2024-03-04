@@ -1,0 +1,101 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+# This section is applied to all accounts
+baseline:
+  # network_perimeter_expected_public_cidr: list of public CIDR with format x.x.x.x/y
+  # Used to remove API calls from expected public CIDRs for network perimeter queries
+  network_perimeter_expected_public_cidr: [ 
+    142.158.256.0/24
+  ]
+  # network_perimeter_trusted_account: list of AWS account IDs
+  # Used to remove API calls from expected AWS account IDs for network perimeter queries
+  network_perimeter_trusted_account : [ 
+    "11111111111111"
+  ]
+  # network_perimeter_trusted_principal: list of principal ARNs or principal IDs - supports subset of a principal ARN or principal ID
+  # Used to remove API calls from expected AWS IAM users/roles for network perimeter queries
+  network_perimeter_trusted_principal: [ # 
+    role/service-role/config
+  ]
+  # network_perimeter_expected_vpc: list of VPC IDs
+  # Used to remove API calls from expected VPC for network perimeter queries
+  network_perimeter_expected_vpc: [ 
+    vpc-1111111111
+  ]
+  # network_perimeter_expected_vpc_endpoint: list of VPC endpoints IDs
+  # Used to remove API calls made through expected VPC endpoints for network perimeter queries
+  network_perimeter_expected_vpc_endpoint: [ # 
+    vpce-1212121212
+  ]
+  # identity_perimeter_trusted_account: list of AWS account IDs
+  # Used to remove API calls from trusted AWS account IDs for queries on identity perimeter
+  identity_perimeter_trusted_account : [ 
+    "222222222222"
+  ]
+  # identity_perimeter_trusted_principal: list of principal ARNs or principal IDs - supports subset of a principal ARN or principal ID
+  # Used to remove API calls from trusted AWS IAM users/roles for queries on identity perimeter
+  identity_perimeter_trusted_principal : [
+  ]
+  # resource_perimeter_trusted_bucket: list of Amazon S3 bucket name
+  # Used to remove API calls to trusted S3 buckets for queries on resource perimeter
+  resource_perimeter_trusted_bucket: [
+  ]
+  # org_unit_boundary: dict with 
+    # keys: name of the OU boundary (free format field) 
+    # values: list of organization unit (OU) IDs
+  # Only supported in baseline section
+  # Used to 
+    # remove API calls from principals belonging to the same OU boundary for identity perimeter queries
+    # remove API calls to resources belonging to the same OU boundary for resource perimeter queries
+  # Example: if an AWS account is a child of `ou-gi22-ozr5zn38`, then this account's OU boundary is labelled as "production"
+  # a query can leverage this to detect calls from principals belonging to the same OU boundary and remove them as part of the identity perimeter queries
+  org_unit_boundary:
+    production: [
+      ou-gi22-ozr5zn38
+    ]
+    development: [
+      ou-gi22-gnoi8d74
+    ]
+    isolated: [
+      ou-gi22-mzzh2j
+    ]
+  # athena_sql_limit: int
+  # Used to define the LIMIT value of the sql queries in Athena
+  athena_sql_limit: 250
+
+
+# This section is specific to account `744792229388`
+744792229388: 
+  network_perimeter_expected_public_cidr: [
+    90.101.250.215/32
+  ]
+  network_perimeter_trusted_principal: [
+    role/AWS-QuickSetup-BaselineOverrides-LambdaRole-zzzzzz,
+    role/AWS-QuickSetup-Remediation-AutomationRole-zzzzzz,
+    role/AWS-QuickSetup-AutomationRole-eu-west-3-zzzzzz,
+    role/pipeline,
+    role/service-role/customRuleConfig-role
+  ]
+  network_perimeter_expected_vpc: [
+  ]
+  network_perimeter_expected_vpc_endpoint: [
+  ]
+  identity_perimeter_trusted_account : [
+
+  ]
+  identity_perimeter_trusted_principal : [
+    
+  ]
+  resource_perimeter_trusted_bucket: [
+    trusted-s3-bucket-111111111111
+  ]
+  # Resource specific configuration
+  # The first key is always the resource type as known by AWS Config - https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html
+  # The second key is the name of the resource as identified in the queries (for example, the bucket name)
+  # then all previously defined keys can be used - for example, `network_perimeter_expected_vpc_endpoint`
+  "AWS::S3::Bucket":
+    "my-special-bucket":
+      network_perimeter_expected_vpc_endpoint: [
+        vpce-yyyyyyyyy
+      ]
+  athena_sql_limit: 250

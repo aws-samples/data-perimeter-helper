@@ -1,0 +1,100 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+############################################################
+# Use this file to declare your data perimeters definition.
+# The baseline section is applied to all AWS accounts.
+# You can have account specific configuration that expands the baseline.
+# To have an account sepcific configuration, create a section
+# with the account ID as key
+############################################################
+baseline:
+  network_perimeter_expected_public_cidr: [
+    
+  ]
+  network_perimeter_trusted_account: [
+    
+  ]
+  network_perimeter_trusted_principal: [
+
+  ]
+  network_perimeter_expected_vpc: [
+
+  ]
+  network_perimeter_expected_vpc_endpoint: [
+
+  ]
+  identity_perimeter_trusted_account: [
+
+  ]
+  identity_perimeter_trusted_principal: [
+  ]
+  resource_perimeter_trusted_bucket_name: [
+    # List of AWS owned buckets. This list is provided for example and is not maintened in this repository.
+    # For a most updated list see: https://github.com/aws-samples/data-perimeter-policy-examples/tree/main/vpc_endpoint_policies
+    'packages.[\w-]*.amazonaws.com',
+    'repo.[\w-]*.amazonaws.com',
+    'amazonlinux.[\w-]*.amazonaws.com',
+    'amazonlinux-2-repos-[\w-]*',
+    'al2023-[\w-]*',
+    'repo.[\w-]*.emr.amazonaws.com',
+    'prod.[\w-]*.appinfo.src',
+    'aws-ssm-[\w-]*',
+    'aws-windows-downloads-[\w-]*',
+    'amazon-ssm-[\w-]*',
+    'amazon-ssm-packages-[\w-]*',
+    '[\w-]*-birdwatcher-prod',
+    'aws-ssm-distributor-file-[\w-]*',
+    'aws-ssm-document-attachments-[\w-]*',
+    'patch-baseline-snapshot-[\w-]*',
+    'aws-patchmanager-macos-[\w-]*',
+    'amazoncloudwatch-agent-[\w-]*',
+    'amazoncloudwatch-agent',
+    'aws-codedeploy-[\w-]*',
+    'ec2imagebuilder-toe-[\w-]*-prod',
+    'ec2imagebuilder-managed-resources-[\w-]*-prod/components',
+    'prod-[\w-]*-starport-layer-bucket',
+    'aws-mgn-clients-[\w-]*',
+    'aws-mgn-clients-hashes-[\w-]*',
+    'aws-mgn-internal-[\w-]*',
+    'aws-mgn-internal-hashes-[\w-]*',
+    'aws-application-migration-service-[\w-]*',
+    'aws-application-migration-service-hashes-[\w-]*',
+    'aws-drs-clients-[\w-]*',
+    'aws-drs-clients-hashes-[\w-]*',
+    'aws-drs-internal-[\w-]*',
+    'aws-drs-internal-hashes-[\w-]*',
+    'aws-elastic-disaster-recovery-[\w-]*',
+    'aws-elastic-disaster-recovery-hashes-[\w-]*',
+  ]
+  org_unit_boundary:
+  athena_sql_limit: 250
+
+# Example configuration that applies only to AWS account 111111111111
+111111111111:
+  network_perimeter_expected_public_cidr: [
+    1.1.1.1/32
+  ]
+  network_perimeter_trusted_principal: [
+    role/trusted_role_network_perimeter
+  ]
+  network_perimeter_expected_vpc: [
+    vpc-xxxxxxxxxx
+  ]
+  network_perimeter_expected_vpc_endpoint: [
+    vpce-xxxxxxxxx
+  ]
+  identity_perimeter_trusted_account: [
+
+  ]
+  identity_perimeter_trusted_principal: [
+    
+  ]
+  resource_perimeter_trusted_bucket_name: [
+    trusted-s3-bucket-111111111111
+  ]
+  athena_sql_limit: 250
+  "AWS::S3::Bucket":
+    "my-bucket-11111111":
+      network_perimeter_expected_vpc_endpoint: [
+        vpce-yyyyyyyyy
+      ]

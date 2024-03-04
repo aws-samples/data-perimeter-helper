@@ -1,0 +1,110 @@
+<!--
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+-->
+<!DOCTYPE html>
+<html>
+  <title> {{ title }} </title>
+  <header>
+      <!-- jQuery -->
+      <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha384-5AkRS45j4ukf+JbWAfHL8P4onPA9p0KwwP7pUdjSQA3ss9edbJUJc/XcYAiheSSz" crossorigin="anonymous"></script>
+      <!-- DataTables -->
+      <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet" integrity="sha384-cya1SKeBBe5YTpHgx4WoICmzqkoHTxoGqjPySUq2nLksbJ/JiKXX2RmhyLz6jwST" crossorigin="anonymous"/>
+      <script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js" integrity="sha384-cjmdOgDzOE22dUheI5E6Gzd3upfmReW8N1y/4jwKQE50KYcvFKZJA9JxWgQOzqwQ" crossorigin="anonymous"></script>
+  </header>
+  <body>
+    <h1>{{ title }}</h1>
+    <h2>Date: {{ date }}</h2>
+    <a href="./">Index</a>
+    <hr>
+
+    <!-- Loop here -->
+    {% for table in list_table  %}
+      {% if "name" in table %}
+        <h2> {{ table['name'] }} </h2>
+      {%- endif -%}
+      {% if "query" in table and table['query']|length > 0 %}
+        <button class="toggle_query" type="button">Show Amazon Athena query</button>
+        <button class="copy_query" type="button">Copy Amazon Athena query</button>
+        <div class="copy_msg"></div>
+        <div class="query" style="white-space: pre-wrap; display: none;">
+{% if "exec_time" in table and table['exec_time']|length > 0 %} -- Query took {{ table['exec_time'] }} {% endif %}
+{{ table["query"] }}
+        </div>
+      {% endif %}
+
+      {% if "dataframe" in table and table['dataframe'].index|length > 0 %}
+        {{ table['dataframe'].to_html(escape=True) | safe }} <!-- # nosemgrep: template-unescaped-with-safe -->
+      {% else %}
+        <br/> [No result to display]
+      {% endif %}
+      <hr>
+    {% endfor %}
+      
+    <script type="text/javascript">
+      $(document).ready( function () {
+        // Add a search field for each column (as tfoot awaiting table initialization)
+        $("table").each(
+          function(index) {
+            var $tfoot = $('<tfoot id="searchbox"></tfoot>')
+            $($(this).children('thead').clone(true, true).children().get().reverse()).each(function(){
+              $tfoot.append($(this));
+            });
+            $tfoot.insertAfter($(this).children('thead'));
+            $(this).find('tfoot th').each(function () {
+              var title = $(this).text();
+              $(this).html(
+                '<input type="text" placeholder="Search ' + title + '" />'
+              );
+            });
+          }
+        );
+        // Initialize all table as DataTable
+        $('table').DataTable({
+            initComplete: function () {
+              this.api()
+                .columns()
+                .every(function () {
+                  var that = this;
+                  $('input', this.footer()).on('keyup change clear', function () {
+                    if (that.search() !== this.value) {
+                      that.search(this.value).draw();
+                    }
+                  });
+                });
+            },
+        });
+        // Move the footer as header to ease readability (needs to be done once datatable is init)
+        $("table").each(
+          function(index) {
+              $(this).find('tfoot tr').appendTo($(this).find('thead'))
+          }
+        )
+        // Add click animation on the show query button
+        $("button.toggle_query").click(function(){
+          $(this).nextAll(".query:first").toggle('slow');
+        })
+
+        // Copy button
+        $("button.copy_query").click(function(){
+          var query_text = $(this).nextAll(".query:first").text();
+          var elmt_copy_msg = $(this).next(".copy_msg");
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(query_text)
+                .then(() => {
+                  elmt_copy_msg.text("Athena query copied to clipboard").show();
+                })
+                .catch((error) => {
+                  elmt_copy_msg.text("Athena query copy has failed!").show();
+                });
+          } else {
+            elmt_copy_msg.text("Athena query copy has failed!").show();
+          }
+          var timer = setInterval(function (){
+            elmt_copy_msg.hide();
+          }, 1500)
+        })
+      });
+    </script>
+  </body>
+</html>
