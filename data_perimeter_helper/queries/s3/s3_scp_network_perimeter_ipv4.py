@@ -125,8 +125,6 @@ WHERE
     AND useridentity.principalid != 'AWSService'
     -- Remove API calls made by service-linked roles in the selected account
     AND COALESCE(NOT regexp_like(useridentity.sessioncontext.sessionissuer.arn, '(:role/aws-service-role/)'), True)
-    -- Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
-    AND COALESCE(NOT regexp_like(useragent, '(?i)(S3Console|AWSCloudTrail)'), True)
     -- Remove API calls with errors
     AND errorcode IS NULL
 GROUP BY

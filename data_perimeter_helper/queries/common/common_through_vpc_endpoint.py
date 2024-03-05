@@ -58,6 +58,13 @@ You can use this query to accelerate implementation of your [**network perimeter
             params=params,
             with_negation=True
         )
+        network_perimeter_expected_public_cidr = helper.get_athena_dph_configuration(
+            account_id=account_id,
+            configuration_key="network_perimeter_expected_public_cidr",
+            column_name="sourceipaddress",
+            params=params,
+            with_negation=True
+        )
         statement = f"""-- Query: {self.name} | {account_id}
 SELECT
     useridentity.sessioncontext.sessionissuer.arn as principal_arn,
@@ -79,8 +86,8 @@ WHERE
     AND COALESCE(NOT regexp_like(sourceipaddress, '(?i)(amazonaws|Internal)'), True)
     -- Remove API calls made through expected VPC endpoints - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc_endpoint` parameter).
     {network_perimeter_expected_vpc_endpoint}
-    -- Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
-    AND COALESCE(NOT regexp_like(useragent, '(?i)(S3Console|AWSCloudTrail)'), True)
+    -- Remove API calls made from expected public CIDR ranges - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_public_cidr` parameter).
+    {network_perimeter_expected_public_cidr}
     -- Remove API calls with errors
     AND errorcode IS NULL
 GROUP BY

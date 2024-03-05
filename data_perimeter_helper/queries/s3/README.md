@@ -33,6 +33,7 @@ Below filters are applied:
 - Remove API calls made by principals belonging to identity perimeter trusted accounts - retrieved from the `data perimeter helper` configuration file (`identity_perimeter_trusted_account` parameter).
 - Remove API calls made by identity perimeter trusted identities - retrieved from the `data perimeter helper` configuration file (`identity_perimeter_trusted_principal` parameter).
 - Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
+- Remove preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration.
 - Remove API calls with errors.
 - Remove resource specific exceptions.
 
@@ -67,6 +68,8 @@ WHERE
     {identity_perimeter_trusted_principal_arn}
     {identity_perimeter_trusted_principal_id}
     -- Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
+    -- Remove preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration
+    AND eventname != 'PreflightRequest'
     AND useridentity.principalid != 'AWSService'
     -- Remove API calls with errors
     AND errorcode IS NULL
@@ -109,6 +112,7 @@ Below filters are applied:
 - Remove API calls made by principals belonging to identity perimeter trusted accounts - retrieved from the `data perimeter helper` configuration file (`identity_perimeter_trusted_account` parameter).
 - Remove API calls made by identity perimeter trusted identities - retrieved from the `data perimeter helper` configuration file (`identity_perimeter_trusted_principal` parameter).
 - Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
+- Remove preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration.
 - Remove API calls with errors.
 - Remove resource specific exceptions.
 
@@ -144,6 +148,8 @@ WHERE
     {identity_perimeter_trusted_principal_id}
     -- Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
     AND useridentity.principalid != 'AWSService'
+    -- Remove preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration
+    AND eventname != 'PreflightRequest'
     -- Remove API calls with errors
     AND errorcode IS NULL
 GROUP BY
@@ -236,8 +242,6 @@ WHERE
     AND useridentity.principalid != 'AWSService'
     -- Remove API calls made by service-linked roles in the selected account
     AND COALESCE(NOT regexp_like(useridentity.sessioncontext.sessionissuer.arn, '(:role/aws-service-role/)'), True)
-    -- Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
-    AND COALESCE(NOT regexp_like(useragent, '(?i)(S3Console|AWSCloudTrail)'), True)
     -- Remove API calls with errors
     AND errorcode IS NULL
 GROUP BY
@@ -287,7 +291,6 @@ Below filters are applied:
 - Remove API calls made by network perimeter trusted identities - retrieved from the `data perimeter helper` configuration file (`network_perimeter_trusted_principal` parameter).
 - Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
 - Remove API calls made by service-linked roles in the selected account.
-- Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
 - Remove API calls with errors.
 - Remove API calls made by service-linked roles inventoried in AWS Config aggregator.
 - Remove API calls from expected VPCs - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc` parameter).
@@ -334,8 +337,6 @@ WHERE
     AND useridentity.principalid != 'AWSService'
     -- Remove API calls made by service-linked roles in the selected account
     AND COALESCE(NOT regexp_like(useridentity.sessioncontext.sessionissuer.arn, '(:role/aws-service-role/)'), True)
-    -- Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
-    AND COALESCE(NOT regexp_like(useragent, '(?i)(S3Console|AWSCloudTrail)'), True)
     -- Remove API calls with errors
     AND errorcode IS NULL
 GROUP BY

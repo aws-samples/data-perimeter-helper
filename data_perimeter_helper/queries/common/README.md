@@ -110,7 +110,6 @@ Below filters are applied:
 - Remove API calls made by network perimeter trusted identities - retrieved from the `data perimeter helper` configuration file (`network_perimeter_trusted_principal` parameter).
 - Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
 - Remove API calls made by service-linked roles in the selected account.
-- Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
 - Remove API calls with errors.
 - Remove API calls from expected VPCs - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc` parameter).
 - Remove API calls made by service-linked roles inventoried in AWS Config aggregator.
@@ -156,8 +155,6 @@ WHERE
     AND useridentity.principalid != 'AWSService'
     -- Remove API calls made by service-linked roles in the selected account
     AND COALESCE(NOT regexp_like(useridentity.sessioncontext.sessionissuer.arn, '(:role/aws-service-role/)'), True)
-    -- Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
-    AND COALESCE(NOT regexp_like(useragent, '(?i)(S3Console|AWSCloudTrail)'), True)
     -- Remove API calls with errors
     AND errorcode IS NULL
 GROUP BY
@@ -379,6 +376,7 @@ Below filters are applied:
 - Remove API calls from AWS service networks - `sourceipaddress` field in CloudTrail log equals to an AWS service domain name (example: `athena.amazonaws.com`) or contains `AWS Internal`.
 - Remove API calls made through expected VPC endpoints - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc_endpoint` parameter).
 - Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
+- Remove API calls made from expected public CIDR ranges - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_public_cidr` parameter).
 - Remove API calls with errors.
 
 
@@ -408,8 +406,8 @@ WHERE
     AND COALESCE(NOT regexp_like(sourceipaddress, '(?i)(amazonaws|Internal)'), True)
     -- Remove API calls made through expected VPC endpoints - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc_endpoint` parameter).
     {network_perimeter_expected_vpc_endpoint}
-    -- Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.
-    AND COALESCE(NOT regexp_like(useragent, '(?i)(S3Console|AWSCloudTrail)'), True)
+    -- Remove API calls made from expected public CIDR ranges - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_public_cidr` parameter).
+    {network_perimeter_expected_public_cidr}
     -- Remove API calls with errors
     AND errorcode IS NULL
 GROUP BY

@@ -66,7 +66,6 @@ WHERE_DOCUMENTATION = {
     "AND COALESCE(NOT regexp_like(useridentity.sessioncontext.sessionissuer.arn, '(:role/aws-service-role/)'), True)": "Remove API calls made by service-linked roles in the selected account.",
     "AND regexp_like(useridentity.sessioncontext.sessionissuer.arn, '(:role/aws-service-role/)')": "Keep only API calls made by service-linked roles in the selected account - `useridentity.sessioncontext.sessionissuer.arn` field in CloudTrail log contains `:role/aws-service-role/`. For cross-account API calls, the field `useridentity.sessioncontext.sessionissuer.arn` IS NULL, therefore, you need to run this query in each account you would like to analyze.",
     "AND useridentity.principalid != 'AWSService'": "Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.",
-    "AND COALESCE(NOT regexp_like(useragent, '(?i)(S3Console|AWSCloudTrail)'), True)": "Remove API calls made via AWS Management Console with `S3Console` and `AWSCloudTrail` user agent - this is to manage temporary situations where the field `vpcendpointid` contains AWS owned VPC endpoint IDs.",
     "AND COALESCE(NOT regexp_like(useridentity.accountid, '(?i)(anonymous)'), True)": "Remove unauthenticated calls.",
     "AND errorcode IS NULL": "Remove API calls with errors.",
     "AND errorcode in ('Client.UnauthorizedOperation', 'Client.InvalidPermission.NotFound', 'Client.OperationNotPermitted', 'AccessDenied')": "Keep only API calls with access denied error code.",
@@ -76,6 +75,7 @@ WHERE_DOCUMENTATION = {
     "AND COALESCE(NOT regexp_like(requestparameters, ':{account_id}:storage-lens|{account_id}.s3-control'), True)": "Remove API calls with the selected account ID in the request parameters (example: GetStorageLensConfiguration).",
     "AND unnested_resources.type IS DISTINCT FROM 'AWS::S3::Object'": "Remove the unnested values of the `resources` field in CloudTrail with `resource.type`=`AWS::S3::Object`. Another unnested row exists with `resources.type`=`AWS::S3::Bucket` and `resources.accountid` distinct from NULL.",
     "AND COALESCE(unnested_resources.accountid NOT IN ({list_all_account_id}), True)": "Remove API calls on S3 buckets owned by accounts belonging to the same AWS organization as the selected account.",
+    "AND eventname != 'PreflightRequest'": "Remove preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration."
 }
 
 WHERE_SKIP_DOCUMENTATION = [

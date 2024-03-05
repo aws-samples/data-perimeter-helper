@@ -100,7 +100,7 @@ class Variables:
     package_path = Path(__file__).absolute().parent  # data_perimeter_helper/
     package_parent_path = package_path.parent  # parent of data_perimeter_helper/
     # variables yaml file
-    variable_yaml_file_name = "variables.local.yaml"
+    variable_yaml_file_name = "variables.yaml"
     variable_yaml_full_path = str(package_path / variable_yaml_file_name)
     variable_yaml_section = "default"
     # logging file
@@ -114,7 +114,7 @@ class Variables:
     use_parameterized_queries = True
     list_account_id: list = []
     # Data perimeter configuration file
-    dph_yaml_file_name = "data_perimeter.local.yaml"
+    dph_yaml_file_name = "data_perimeter.yaml"
     dph_yaml_full_path = str(
         package_path / dph_yaml_file_name
     )
