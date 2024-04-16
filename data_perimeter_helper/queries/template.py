@@ -45,6 +45,8 @@ class query_name_replace_me(Query):
                 'AWS::IAM::Role',
                 'AWS::Organizations::Account'
             ],
+            # Set to True if your query depends on IAM Access Analyzer external access findings.
+            depends_on_iam_access_analyzer=False,
             # Set the variable `use_split_table`:
             #   - If you store CloudTrail management events and data events in two different buckets:
             #     -	Set `use_split_table = True` if you want to analyze data events as part of your query.

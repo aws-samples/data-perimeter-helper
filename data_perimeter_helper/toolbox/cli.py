@@ -31,9 +31,10 @@ def validate_args(arguments: argparse.Namespace) -> None:
         return
     list_account: List[str] = arguments.list_account
     list_query: List[str] = arguments.list_query
+    list_ou: List[str] = arguments.list_ou
     if len(list_query) == 0:
         raise ValueError("--list-query/-lq must be defined")
-    if len(list_account) == 0:
+    if len(list_account) == 0 and len(list_ou) == 0:
         referential_query_present = False
         standard_query_present = False
         for query in list_query:
@@ -43,12 +44,7 @@ def validate_args(arguments: argparse.Namespace) -> None:
                 standard_query_present = True
                 break
         if (referential_query_present is False) or (standard_query_present is True):
-            raise ValueError("--list-account/-la must be defined")
-    for account_id in list_account:
-        if regex_is_accountid.match(account_id) is None:
-            raise ValueError(
-                f"Provided AWS account ID [{account_id}] is not a valid"
-            )
+            raise ValueError("--list-account/-la or --list-ou/-lo must be defined")
 
 
 def setup_dph_args_parser(args) -> argparse.Namespace:
@@ -71,7 +67,7 @@ def setup_dph_args_parser(args) -> argparse.Namespace:
         dest="list_query",
         nargs='*',
         default=[],
-        help='list of queries to be performed'
+        help='list of queries to perform'
     )
     optional_params.add_argument(
         '-la',
@@ -79,7 +75,15 @@ def setup_dph_args_parser(args) -> argparse.Namespace:
         dest="list_account",
         nargs='*',
         default=[],
-        help='list of AWS accounts IDs'
+        help='list of AWS account IDs'
+    )
+    optional_params.add_argument(
+        '-lo',
+        '--list-ou',
+        dest="list_ou",
+        nargs='*',
+        default=[],
+        help='list of organizational unit IDs'
     )
     optional_params.add_argument(
         '-h',

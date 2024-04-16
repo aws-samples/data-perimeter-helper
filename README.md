@@ -59,6 +59,7 @@ You can then review `data perimeter helper` results to identify principals not b
 
 Note that `data perimeter helper` is intended to accelerate your analysis — not to replace human analysis. The helper relies on CloudTrail logs to help you reason about potential impacts of policies you write. Though CloudTrail provides you information about parameters of a request, it does not reflect values of IAM condition keys present in the request.
 
+
 ## Demo with an animated GIF
 
 ![Data perimeter helper - live demo](./docs/dph_live_demo.gif)
@@ -91,6 +92,11 @@ Data perimeter helper queries expect a specific table schema. You can use the fo
 
 To accelerate the deployment of the preceding prerequisites, you can use the following Terraform templates: [./prerequisites/terraform/README.md](./prerequisites/terraform?ref_type=heads).
 
+5. (Optional) [AWS IAM Access Analyzer](https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html) [external access analyzer](https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-concepts.html).
+
+You can configure `data perimeter helper` to retrieve IAM Access Analyzer external access findings from AWS IAM Access Analyzer or [AWS Security Hub](https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html).
+Security Hub provides provides [cross-region aggregation](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) enabling you to retrieve more easily findings accross your organization.
+If you choose Security Hub then you need to have Security Hub cross-region enabled for your organization.
 
 ### 2.1.3 Prerequisites – AWS IAM permissions
 
@@ -98,6 +104,7 @@ To accelerate the deployment of the preceding prerequisites, you can use the fol
 1.	A principal with permissions to run Athena queries, read CloudTrail logs, and read/write Athena query results.
 2.	A principal with AWS Config permissions to run AWS Config advanced queries.
 3.	A principal with permissions to list AWS accounts in AWS Organizations.
+4.  (Optional) A principal with permissiosn to get IAM Access Analyzer external access findings.
 
 The following diagram demonstrates how these permissions are utilized by the tool:
 
@@ -162,21 +169,40 @@ The following list provides common `data perimeter helper` commands:
   ```shell
   $ dph --list-account/-la <ACCOUNT_ID> --list-query/-lq <QUERY_NAME>
   ```
-3.	Run a specific query on one account using the substring of a query name:
+
+You can use `--list-account/-la` with an account ID or an account name.
+
+3.	Run a specific query on multiple accounts.
+
+You can use `--list-account/-la` with multiple account IDs or account names:
+  ```shell
+  $ dph --list-account/-la <ACCOUNT_ID_1> <ACCOUNT_ID_2> -lq <QUERY_NAME>
+  ```
+
+You can run your query across all your organization by setting `--list-account/-la` to `all`:
+  ```shell
+  $ dph --list-account/-la all -lq <QUERY_NAME>
+  ```
+
+If you want to run your query against accounts descendant of specific organizational units, you can use `--list-ou/-lo` with multiple organizational unit IDs or organizational unit names:
+  ```shell
+  $ dph --list-ou/-lo <OU_ID_1> <OU_ID_2> -lq <QUERY_NAME>
+  ```
+
+If one of your account names or organizational unit names contains space, put it under quote `"`.
+
+4.	Run a specific query on one account using the substring of a query name:
   ```shell
   $ dph -la <ACCOUNT_ID> -lq <SUBSTRING_OF_QUERY_NAME>
   ```
 For example, by using `bucket` as a substring, any query name containing `bucket` would be selected.
 
-4.	Run a specific query on multiple accounts:
-  ```shell
-  $ dph -la <ACCOUNT_ID_1> <ACCOUNT_ID_2> -lq <QUERY_NAME>
-  ```
 
 5.	Run multiple queries on multiple accounts:
   ```shell
   $ dph -la <ACCOUNT_ID_1> <ACCOUNT_ID_2> -lq <QUERY_NAME_1> <QUERY_NAME_2>
   ```
+
 6.	Use a custom variables file:
 
 By default, variables' values are retrieved from the [variables.yaml](./data_perimeter_helper/variables.yaml) file.    
@@ -211,14 +237,22 @@ The `referential` queries rely on AWS Config advanced queries and AWS Organizati
 The `referential` queries are prefixed with the keyword `referential` and are *not* tied to a specific AWS service. For more information, see: [./data_perimeter_helper/queries/common/README.md](./data_perimeter_helper/queries/referential/README.md).
 
 
-### 4.1.3 Amazon S3 queries
+### 4.1.3 Findings queries
+
+You can use `findings` queries to get insights on your AWS IAM Access Analyzer external access findings.    
+The `findings` queries rely on AWS IAM Access Analyzer or AWS Security Hub API calls depending on the value of variable `external_access_findings` in the [variables file](./data_perimeter_helper/variables.yaml).
+
+The `findings` queries are prefixed with the keyword `findings` and are *not* tied to a specific AWS service. For more information, see: [./data_perimeter_helper/queries/findings/README.md](./data_perimeter_helper/queries/findings/README.md).
+
+
+### 4.1.4 Amazon S3 queries
 
 You can use `s3` queries to analyze activity in your AWS organization against data perimeter objectives while focusing exclusively on [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html) API calls.    
 
 The `s3` queries are prefixed with the keyword `s3`. For more information, see: [./data_perimeter_helper/queries/s3/README.md](./data_perimeter_helper/queries/s3/README.md).
 
 
-### 4.1.4 Amazon SNS queries
+### 4.1.5 Amazon SNS queries
 
 You can use `sns` queries to analyze activity in your AWS organization against data perimeter objectives while focusing exclusively on  [Amazon SNS](https://docs.aws.amazon.com/sns/latest/dg/welcome.html) API calls.    
 
@@ -251,6 +285,7 @@ To configure a query, you need to update three main sections in your query file:
     - `Data perimeter helper` uses this information to parallelize retrieval of resource configuration data with threading to speed up query execution.
     -	If you do not declare resource dependencies, `data perimeter helper` will retrieve resource configuration information during its execution without threading.
     -	If you use AWS Config advanced queries to retrieve the resource configuration information, you need to specify resource type values supported by AWS Config (for example, `AWS::S3::Bucket`, which is case sensitive). See the list of [AWS Config supported resource types](https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html). 
+  - Set the variable [`depends_on_iam_access_analyzer`](./data_perimeter_helper/queries/template.py) to `True` if your queries relies on AWS IAM Access Analyzer external access findings.
   -	Set the variable [`use_split_table`](./data_perimeter_helper/queries/template.py#L54):
     -	If you store CloudTrail management events and data events in two different buckets:
         -	Set `use_split_table = True` if you want to analyze data events as part of your query.

@@ -11,6 +11,7 @@ The `s3` queries are prefixed with the keyword `s3`.
 * [s3_bucket_policy_identity_perimeter_org_boundary](#query-name-s3_bucket_policy_identity_perimeter_org_boundary)
 * [s3_bucket_policy_identity_perimeter_ou_boundary](#query-name-s3_bucket_policy_identity_perimeter_ou_boundary)
 * [s3_bucket_policy_network_perimeter_ipv4](#query-name-s3_bucket_policy_network_perimeter_ipv4)
+* [s3_external_access_org_boundary](#query-name-s3_external_access_org_boundary)
 * [s3_scp_network_perimeter_ipv4](#query-name-s3_scp_network_perimeter_ipv4)
 * [s3_scp_resource_perimeter](#query-name-s3_scp_resource_perimeter)
 * [s3_vpce_policy_resource_perimeter_account_to_not_mine](#query-name-s3_vpce_policy_resource_perimeter_account_to_not_mine)
@@ -267,6 +268,13 @@ GROUP BY
 - Remove resource specific exceptions.
 </details>
 
+
+# Query name: s3_external_access_org_boundary
+
+### Query description
+
+List active AWS IAM Access Analyzer external findings associated with Amazon S3 buckets.
+You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organization level. You can use the global condition key [aws:PrincipalOrgId](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgid) to limit access to your resources to principals belonging to your AWS organization.
 
 
 # Query name: s3_scp_network_perimeter_ipv4

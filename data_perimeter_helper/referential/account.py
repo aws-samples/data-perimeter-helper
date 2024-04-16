@@ -15,6 +15,7 @@ from typing import (
 )
 from concurrent.futures import (
     ThreadPoolExecutor,
+    Future,
     as_completed as concurrent_completed
 )
 
@@ -38,6 +39,8 @@ class account(ResourceType):
     # ID and the value its parent ID
     cache_direct_parent: Dict[str, str] = {}
     cache_account_in_org_unit_boundary: Dict[str, List[str]] = {}
+    cache_ou_by_id: Dict[str, Dict[str, str]] = {}
+    cache_ou_by_name: Dict[str, Dict[str, str]] = {}
     USE_THREAD_FOR_LIST_PARENT = True
 
     def __init__(self):
@@ -70,6 +73,7 @@ class account(ResourceType):
             account.get_list_all_parents_thread(results)
         logger.debug("[~] List of retrieved accounts: %s", results)
         df = pandas.DataFrame.from_dict(results)  # type: ignore
+        account.describe_all_parents(df)
         org_unit_boundary_definition = account.get_org_unit_boundary_definition()
         if org_unit_boundary_definition is None:
             return df
@@ -81,12 +85,90 @@ class account(ResourceType):
         ]
         return df
 
+    @classmethod
+    def describe_all_parents(cls, df: pandas.DataFrame) -> None:
+        """Describe all parents"""
+        all_parents = []
+        # Build a distinct list of OU IDs
+        for list_parent_id in df['parent']:
+            all_parents.extend(list_parent_id)
+        all_parents = list(set(all_parents))
+        logger.debug("[~] List of all parents: %s", all_parents)
+        # Describe each list item using threads
+        cls.api_describe_ou_thread(all_parents)
+        # Update the initial dataframe
+        df['parent_name'] = [
+            cls.get_ou_name_for_list(
+                list_parent_id
+            )
+            for list_parent_id in df['parent']
+        ]
+
+    @staticmethod
+    def api_describe_ou_thread(all_parents: List[str]) -> None:
+        """Perform the API describe OU using threads"""
+        pool: Dict[Future, dict] = {}
+        # Number of worker divided by two to manage nested threads
+        with ThreadPoolExecutor(
+            max_workers=int(Var.thread_max_worker / 2)
+        ) as executor:
+            for ou_id in all_parents:
+                pool.update({
+                    executor.submit(
+                        account.api_describe_ou,
+                        ou_id
+                    ): {}
+                })
+            for request_in_pool in concurrent_completed(pool):
+                exception = request_in_pool.exception()
+                if exception:
+                    raise exception
+
+    @classmethod
+    def get_ou_name_for_list(cls, list_ou_id: List[str]) -> List[str]:
+        """Return a list of OU name with a list of OU IDs as input"""
+        return [
+            cls.get_ou_name(ou_id)
+            for ou_id in list_ou_id
+        ]
+
+    @classmethod
+    def get_ou_name(cls, ou_id: str) -> str:
+        """Get the name of an OU using its ID"""
+        return cls.api_describe_ou(ou_id)['Name']
+
+    @classmethod
+    def api_describe_ou(cls, ou_id: str) -> Dict[str, str]:
+        """Describe parents of a list of accounts
+        returns Dict['Id', 'Arn', 'Name']
+        """
+        if ou_id in cls.cache_ou_by_id:
+            return cls.cache_ou_by_id[ou_id]
+        if ou_id.startswith('r-'):
+            return {'Id': 'N/A', 'Arn': 'N/A', 'Name': 'Root'}
+        assert Var.org_client is not None  # nosec: B101
+        try:
+            res = Var.org_client.describe_organizational_unit(
+                OrganizationalUnitId=ou_id
+            )['OrganizationalUnit']
+            cls.cache_ou_by_id[ou_id] = res
+            cls.cache_ou_by_name[res['Name']] = res
+            return res
+        except ClientError as error:
+            logger.error("[!] Error from AWS client: %s", error.response)  # nosemgrep: logging-error-without-handling
+            if error.response['Error']['Code'] == 'AccessDeniedException':
+                logger.error(
+                    "[!] Current principal is not authorized to perform"
+                    " [organizations:DescribeOrganizationalUnit]"
+                )
+            raise
+
     @staticmethod
     def get_list_all_parents_thread(list_account):
         pool = {}
         # Number of worker divided by two to manage nested threads
         with ThreadPoolExecutor(
-            max_workers=Var.thread_max_worker / 2
+            max_workers=int(Var.thread_max_worker / 2)
         ) as executor:
             for dict_account in list_account:
                 pool.update({
@@ -233,3 +315,13 @@ class account(ResourceType):
                 if parent_id in org_unit:
                     list_category_name.append(category_name)
         return list(set(list_category_name))
+
+    @classmethod
+    def get_ou_id_from_name(
+        cls,
+        ou_name: str
+    ) -> str:
+        """Get the OU ID from its name"""
+        if ou_name in cls.cache_ou_by_name:
+            return cls.cache_ou_by_name[ou_name]['Id']
+        raise ValueError(f"OU name {ou_name} not found")

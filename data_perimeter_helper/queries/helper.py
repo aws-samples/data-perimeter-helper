@@ -85,14 +85,14 @@ def comment_injected_sql(sql: str, key: str) -> str:
     return f"-- START injected: {key}\n" + sql.strip("\n") + "\n  -- END"
 
 
-def get_list_account_id() -> Union[None, List[str]]:
+def get_list_account_id() -> List[str]:
     """Get all AWS account IDs as list"""
     account_df = Referential.get_resource_type(
         resource_type="AWS::Organizations::Account"
     ).dataframe
     if isinstance(account_df, pandas.DataFrame):
         return account_df['accountid'].values.tolist()
-    return None
+    raise ValueError("No account found")
 
 
 def get_athena_all_account_contains_operator() -> Union[None, str]:

@@ -33,6 +33,9 @@ from typing import (
     Generator,
 )
 
+from data_perimeter_helper.referential.Referential import Referential
+from data_perimeter_helper.referential.account import account
+
 import yaml
 import pandas
 from yaml.composer import (
@@ -42,6 +45,7 @@ from yaml.composer import (
 from data_perimeter_helper import (
     __version__
 )
+from data_perimeter_helper.queries import helper
 
 
 logger = logging.getLogger(__name__)
@@ -65,6 +69,7 @@ class Icons:
     WARNING = "⚠️ "
     ERROR = "❌ "
     SPARKLE = "✨ "
+    INFO = "🛈 "
 
 
 class FancyLogFormatter(logging.Formatter):
@@ -336,3 +341,46 @@ def df_columns_exist(
             )
         return False
     return True
+
+
+def get_list_all_accounts() -> List[str]:
+    """Return a list with all account IDs"""
+    return helper.get_list_account_id()
+
+
+def get_ou_descendant(ou_id: str) -> List[str]:
+    """Return all descendants under an OU ID"""
+    df = Referential.get_resource_type(
+        resource_type="AWS::Organizations::Account"
+    ).dataframe
+    assert isinstance(df, pandas.DataFrame)  # nosec: B101
+    list_descendant = []
+    for account_id, list_parent in zip(df['accountid'], df['parent']):
+        if ou_id in list_parent:
+            list_descendant.append(
+                account_id
+            )
+    if len(list_descendant) == 0:
+        logger.warning(
+            "No descendant found for organizational unit ID: %s",
+            ou_id
+        )
+    return list_descendant
+
+
+def get_account_id_from_name(account_name: str) -> str:
+    df = Referential.get_resource_type(
+        resource_type="AWS::Organizations::Account"
+    ).dataframe
+    assert isinstance(df, pandas.DataFrame)  # nosec: B101
+    for account_id, account_name_ in zip(df['accountid'], df['name']):
+        if account_name_ == account_name:
+            return account_id
+    raise ValueError(f"Account name {account_name} not found")
+
+
+def get_ou_id_from_name(ou_name: str) -> str:
+    Referential.get_resource_type(
+        resource_type="AWS::Organizations::Account"
+    )
+    return account.get_ou_id_from_name(ou_name)

@@ -60,6 +60,9 @@ from data_perimeter_helper.referential import (
 from data_perimeter_helper.referential.Referential import (
     Referential
 )
+from data_perimeter_helper.findings.ExternalAccessFindings import (
+    ExternalAccessFindings
+)
 from data_perimeter_helper.variables import (
     Variables as Var
 )
@@ -144,7 +147,6 @@ def export_referential(list_export_format: List[str]) -> None:
 
 
 def query_per_account(
-    list_account_id: List[str],
     queries: Dict[str, Dict[str, Dict[str, Union[str, Query]]]],
     list_export_format: List[str]
 ) -> None:
@@ -153,16 +155,18 @@ def query_per_account(
     :param list_query: List of queries to be applied
     :return: List of pandas dataframes with all queries results
     """
+    Var.augment_variables()
     standard_queries = queries.get("standard", {})
     referential_queries = queries.get("referential", {})
-    nb_query = (len(list_account_id) * len(standard_queries)) + len(referential_queries)
+    nb_query = (len(Var.list_account_id) * len(standard_queries)) +\
+        len(referential_queries)
     df_per_account: Dict[str, List[Dict[str, Union[str, pandas.DataFrame]]]] = {}
     with tqdm(
         total=nb_query,
-        desc="Nb queries performed: ", unit="Queries"
+        desc="Nb queries performed: ", unit="Queries", position=99
     ) as pbar:
         # Manage standard queries
-        for account_id in list_account_id:
+        for account_id in Var.list_account_id:
             df_per_account[account_id] = []
             for query_name, query_value in standard_queries.items():
                 start_time = perf_counter()
@@ -182,7 +186,8 @@ def query_per_account(
                     f" {account_id} in {exec_time}"
                 pbar.write(
                     utils.color_string(
-                        utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD
+                        utils.Icons.FULL_CHECK_GREEN + log_msg,
+                        utils.Colors.GREEN_BOLD
                     )
                 )
                 logger.debug(log_msg)
@@ -214,14 +219,13 @@ def query_per_account(
             logger.debug(log_msg)
             pbar.update(1)
     export_all_queries(
-        list_account_id=list_account_id,
+        list_account_id=Var.list_account_id,
         df_per_account=df_per_account,
         list_export_format=list_export_format,
     )
 
 
 def query_in_parrallel(
-    list_account_id: List[str],
     queries: Dict[str, Dict[str, Dict[str, Union[str, Query]]]],
     list_export_format: List[str],
 ):
@@ -234,18 +238,20 @@ def query_in_parrallel(
     Referential.batch_get_resource_type(
         list_resources=Query.depends_on_resource_type
     )
+    Var.augment_variables()
     df_per_account: Dict[str, List[Dict[str, Union[str, pandas.DataFrame]]]] = {}
     pool = {}
     standard_queries = queries.get("standard", {})
     referential_queries = queries.get("referential", {})
-    nb_query = (len(list_account_id) * len(standard_queries)) + len(referential_queries)
+    nb_query = (len(Var.list_account_id) * len(standard_queries)) +\
+        len(referential_queries)
     with tqdm(
         total=nb_query, desc="Nb queries performed: ",
-        unit="Queries",
+        unit="Queries", position=99
     ) as pbar:
         with ThreadPoolExecutor(max_workers=Var.thread_max_worker) as executor:
             # Manage standard queries
-            for account_id in list_account_id:
+            for account_id in Var.list_account_id:
                 df_per_account[account_id] = []
                 pool.update({
                     executor.submit(
@@ -296,16 +302,26 @@ def query_in_parrallel(
                         f" {account_id} in {exec_time}"
                 pbar.write(
                     utils.color_string(
-                        utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD
+                        utils.Icons.FULL_CHECK_GREEN + log_msg,
+                        utils.Colors.GREEN_BOLD
                     )
                 )
                 logger.debug(log_msg)
                 pbar.update(1)
     export_all_queries(
-        list_account_id=list_account_id,
+        list_account_id=Var.list_account_id,
         df_per_account=df_per_account,
         list_export_format=list_export_format,
     )
+
+
+def init_iam_access_analyzer_external_access_findings() -> bool:
+    """Initialize AWS IAM Access Analyzer external access findings if a
+    requested query depends on it"""
+    if Query.depends_on_iam_access_analyzer is True:
+        ExternalAccessFindings()
+        return True
+    return False
 
 
 @utils.decorator_elapsed_time(
@@ -328,10 +344,10 @@ def main(args=None) -> int:
         import_referential.auto_import()
         queries = import_query.get_queries_to_perform(arguments.list_query)
         Var(arguments)
+        init_iam_access_analyzer_external_access_findings()
         if arguments.disable_thread:
-            logger.info("[+] Threading is disabled")
+            logger.info("[!] Queries are not performed with threading")
             query_per_account(
-                arguments.list_account,
                 queries,
                 arguments.list_export_format
             )
@@ -341,7 +357,6 @@ def main(args=None) -> int:
                 Var.thread_max_worker
             )
             query_in_parrallel(
-                arguments.list_account,
                 queries,
                 arguments.list_export_format
             )

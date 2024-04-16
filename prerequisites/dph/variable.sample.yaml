@@ -6,6 +6,13 @@ default:
   profile_config_access: my-security-account-profile
   #  Credential profile to use for access to AWS Organizations (see README file for required permissions)
   profile_org_access: my-security-account-profile
+  # Optional variable to configure the retrieval of AWS IAM Access Analyzer external access findings.
+  # If set to 'IAM_ACCESS_ANALYZER', then the external access findings will be retrieved from AWS IAM Access Analyzer.
+  # If set to 'SECURITY_HUB', then the external access findings will be retrieved from AWS SecurityHub (see README file for more details).
+  # If not set or with another value, then the external access findings will not be retrieved.
+  external_access_findings: 'SECURITY_HUB'
+  #  Credential profile to use for access to AWS IAM Access Analyzer findings (cf. README file for required permissions)
+  profile_iam_access_analyzer: my-security-account-profile
   #  AWS Config aggregator name
   config_aggregator_name: org-config-aggregator
   #  Athena Workgroup name
@@ -31,5 +38,6 @@ default:
   partition_date_regex: # Example: 2023/05/%
   partition_date_start: 2023/10/20 # Example: 2023/04/20
   partition_date_end: 2023/10/30 # Example: 2023/04/30
+  partition_date_interval:  # Example: 1 month, following units are supported: minute|hour|day|month|year
   # If use_parameterized_queries is not set or set to true, then parameterized queries are used
   use_parameterized_queries: true

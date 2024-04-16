@@ -3,7 +3,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 '''
-This module implements the functions to generate automatically data perimeter helper query documentation in README files
+This module implements the functions to generate automatically data perimeter
+helper query documentation in README files
 '''
 import logging
 import re
@@ -11,7 +12,8 @@ import inspect
 from typing import (
     List,
     Dict,
-    Union
+    Union,
+    Optional
 )
 from collections import (
     OrderedDict
@@ -106,6 +108,7 @@ DATA_PROCESSING_DOCUMENTATION = {
   - API calls made from an AWS service network by a principal that is neither a service role nor a service-linked role and where the `sourceipaddress` field in the CloudTrail record is populated with the service's DNS name.""",
     "result = self.remove_expected_vpc_id(": "Remove API calls from expected VPCs - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc` parameter).",
     "result = helper_s3.remove_call_on_bucket_in_organization(result)": "Remove API calls on S3 buckets inventoried in AWS Config aggregator.",
+    "result = ExternalAccessAnalyzer.describe_findings_as_df(": "Add AWS IAM Access Analyzer external access findings",
 }
 
 ADD_COLUMN_DOCUMENTATION = {
@@ -182,7 +185,8 @@ def add_where_documentation(
     inline_comment: str,
     where_documentation: List[str]
 ):
-    """Get expected documentation for an instruction and check inline comment"""
+    """Get expected documentation for an instruction and check inline
+    comment"""
     expected_doc = WHERE_DOCUMENTATION[instruction]
     if isinstance(expected_doc, str):
         if inline_comment != "" and inline_comment != expected_doc:
@@ -269,7 +273,8 @@ def parse_data_processing(data_processing: str) -> tuple[List[str], List[str]]:
         list_add_column = [f"`{add_column}`" for add_column in list_add_column]
         str_added_column = ", ".join(list_add_column)
         only_in_data_processing_doc.append(
-            f"Following columns are injected to ease analysis: {str_added_column}."
+            "Following columns are injected to ease analysis:"
+            f" {str_added_column}."
         )
     return data_processing_doc, only_in_data_processing_doc
 
@@ -277,7 +282,7 @@ def parse_data_processing(data_processing: str) -> tuple[List[str], List[str]]:
 def document_where_clause(
     query_name: str,
     source_generate_athena_statement: str
-) -> List[str]:
+) -> Optional[List[str]]:
     """Document the WHERE clause of a Query Athena SQL statement"""
     where_clause_find = re.findall(
         r"WHERE(.*)GROUP BY",
@@ -287,9 +292,13 @@ def document_where_clause(
         where_clause = where_clause_find[0].strip()
         return parse_where_clause(query_name, where_clause)
     else:
-        raise ValueError(
-            f"WHERE clause not found for query: {query_name}"
+        # raise ValueError(
+        #     f"WHERE clause not found for query: {query_name}"
+        # )
+        logger.debug(
+            "WHERE clause not found for query: %s", query_name
         )
+        return None
 
 
 def extract_athena_query(
@@ -312,6 +321,8 @@ def document_athena_query(query: Query):
     source_generate_athena_statement = inspect.getsource(
         query.generate_athena_statement
     )
+    if "NotImplementedError" in source_generate_athena_statement:
+        return None, None
     query_name = query.name
     # Get the WHERE clause documentation
     where_documentation = document_where_clause(
@@ -355,7 +366,7 @@ def generate_query_documentation(
     - data_processing_documentation: List of the documentation of the
     data processing"""
     query_name = query.name
-    if query_type == "referential":
+    if query_type in ("referential", "findings"):
         where_documentation = []
         sql_query = ""
         data_processing_documentation: List[str] = []
@@ -368,19 +379,26 @@ def generate_query_documentation(
             manage_data_processing(query)
     docstring = query.__doc__
     if docstring is None:
-        docstring = "No description has been provided for this query, please update your query class with a docstring"
+        docstring = "No description has been provided for this query, "\
+            "please update your query class with a docstring"
     documentation: Dict[str, Union[str, List[str]]] = {
         'query_name': query_name,
         'description': docstring,
-        'sql_query': sql_query,
-        'where_documentation': where_documentation,
-        'data_processing_documentation': data_processing_documentation,
         'only_in_data_processing_doc': only_in_data_processing_doc,
     }
+    if where_documentation is not None:
+        documentation['where_documentation'] = where_documentation
+    if sql_query is not None:
+        documentation['sql_query'] = sql_query
+    if data_processing_documentation is not None:
+        documentation['data_processing_documentation'] = \
+            data_processing_documentation
     return documentation
 
 
-def document_all_queries(selected_queries: List[str]) -> Dict[str, Dict[str, Union[str, List[Dict[str, Union[str, List[str]]]]]]]:
+def document_all_queries(
+    selected_queries: List[str]
+) -> Dict[str, Dict[str, Union[str, List[Dict[str, Union[str, List[str]]]]]]]:
     """Generate the documentation for all the queries
     :param selected_queries: List of the selected queries to document
     :return: Dictionary with the query type as key and a dict with the
@@ -413,7 +431,9 @@ def document_all_queries(selected_queries: List[str]) -> Dict[str, Dict[str, Uni
     return doc_query_type
 
 
-def export_documentation(doc_query_type: Dict[str, Dict[str, Union[str, List[Dict[str, Union[str, List[str]]]]]]]):
+def export_documentation(
+    doc_query_type: Dict[str, Dict[str, Union[str, List[Dict[str, Union[str, List[str]]]]]]]
+):
     """Loop over each query type and export the generated documentation"""
     for query_type_value in doc_query_type.values():
         assert isinstance(query_type_value, dict)  # nosec: B101

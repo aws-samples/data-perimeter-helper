@@ -51,12 +51,14 @@ class Query:
     '''Parent class of all data perimeter helper's queries'''
     queries: Dict[str, 'Query'] = {}
     depends_on_resource_type: List[str] = []
+    depends_on_iam_access_analyzer = False
 
     def __init__(
         self,
         name: str,
-        depends_on_resource_type: Dict[str, str],
-        use_split_table: bool,
+        depends_on_resource_type: List[str],
+        depends_on_iam_access_analyzer: bool = False,
+        use_split_table: bool = False,
     ):
         """Init function of Query class"""
         Query.queries[name] = self
@@ -67,6 +69,8 @@ class Query:
             Query.depends_on_resource_type = list(set(
                 Query.depends_on_resource_type
             ))
+        if depends_on_iam_access_analyzer is True:
+            Query.depends_on_iam_access_analyzer = True
         logger.debug("[~] Query: %s, has been initialized", name)
 
     def generate_athena_statement(
