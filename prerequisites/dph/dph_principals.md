@@ -2,7 +2,7 @@
 
 ![Data perimeter helper profiles](../../docs/dph_profiles.png)
 
-## 1. Principal with profile `profile_athena_access` permissions sample
+## 1. `profile_athena_access` principal permissions sample
 ```jsonc
 {
     "Version": "2012-10-17",
@@ -91,7 +91,7 @@
 }
 ```
 
-## 2. Principal with profile `profile_config_access` permissions sample
+## 2. `profile_config_access` principal permissions sample
 ```jsonc
 {
     "Version": "2012-10-17",
@@ -110,7 +110,7 @@
 }
 ```
 
-## 3. Principal with profile `profile_org_access` permissions sample
+## 3. `profile_org_access` principal permissions sample
 ```jsonc
 {
     "Version": "2012-10-17",
@@ -120,7 +120,77 @@
             "Effect": "Allow",
             "Action": [
                 "organizations:ListAccounts",
-                "organizations:ListParents"
+                "organizations:ListParents",
+                "organizations:DescribeOrganizationalUnit"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
+```
+
+## 4. Principal with profile `profile_iam_access_analyzer` permissions sample
+```jsonc
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ListEnabledRegions",
+            "Effect": "Allow",
+            "Action": [
+                "account:ListRegions"
+            ],
+            "Resource": [
+                "arn:aws:account::<MANAGED_ACCOUNT_ID>:account/<ORGANIZATION_ID>/<ACCOUNT_ID>"
+            ]
+        },
+    ]
+}
+```
+You then need to add the following statements depending on which data source you use, AWS IAM Access Analyzer or AWS Security Hub.
+
+### 4.a If the variable `external_access_findings` is set to `IAM_ACCESS_ANALYZER`
+```jsonc
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ListAnalyzers",
+            "Effect": "Allow",
+            "Action": [
+                "access-analyzer:ListAnalyzers"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Sid": "GetAAFindings",
+            "Effect": "Allow",
+            "Action": [
+                "access-analyzer:ListFindings",
+                "access-analyzer:GetFinding"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
+```
+
+### 4.b If the variable `external_access_findings` is set to `SECURITY_HUB`
+```jsonc
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "DPHSecurityHub",
+            "Effect": "Allow",
+            "Action": [
+                "securityhub:GetFindings"
             ],
             "Resource": [
                 "*"

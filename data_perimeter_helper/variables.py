@@ -13,7 +13,8 @@ from typing import (
     Union,
     Optional,
     List,
-    Dict
+    Dict,
+    Literal
 )
 from pathlib import (
     Path
@@ -34,9 +35,10 @@ regex_date = re.compile(
     r"^(\d{1,4})/(\d{2})/(\d{2})$"
 )
 regex_date_interval = re.compile(
-    r"^(?P<interval>\d{1}) (?P<unit>minute|hour|day|week|month|year)$",
+    r"^(?P<interval>\d{1}) (?P<unit>minute|hour|day|month|year)$",
     re.IGNORECASE
 )
+regex_is_accountid = re.compile(r"^\d{12}$")
 
 
 class Variables:
@@ -57,6 +59,9 @@ class Variables:
     profile_config_access = None
     # Credential profile to use for access to AWS organization (see README file for required permissions)
     profile_org_access = None
+    # Credential profile to use for access to AWS IAM Access Analyzer (see README file for required permissions)
+    profile_iam_access_analyzer = None
+    external_access_findings: Optional[Literal['SECURITY_HUB', 'IAM_ACCESS_ANALYZER']] = None
     # AWS Config aggregator name
     config_aggregator_name = None
     # Athena Workgroup name
@@ -94,6 +99,7 @@ class Variables:
     # Boto3
     session_config = None
     session_org = None
+    session_iam_aa = None
     config_client = None
     org_client = None
     # Python
@@ -113,6 +119,7 @@ class Variables:
     print_result = False
     use_parameterized_queries = True
     list_account_id: list = []
+    list_ou_id: list = []
     # Data perimeter configuration file
     dph_yaml_file_name = "data_perimeter.yaml"
     dph_yaml_full_path = str(
@@ -127,6 +134,7 @@ class Variables:
         arguments: argparse.Namespace
     ):
         Variables.list_account_id = arguments.list_account
+        Variables.list_ou_id = arguments.list_ou
         Variables.print_query = arguments.print_query
         Variables.print_result = arguments.print_result
         # Set custom variable file or custom section
@@ -144,6 +152,7 @@ class Variables:
             Variables.variable_yaml_section
         )
         Variables.init_boto3_var()
+        # Variables.augment_variables()
         Variables.validate_variables()
         logger.debug(
             "[~] Variable class:\n%s",
@@ -163,6 +172,13 @@ class Variables:
         )
         cls.config_client = cls.session_config.client("config")
         cls.org_client = cls.session_org.client("organizations")
+        if cls.external_access_findings in (
+            'SECURITY_HUB', 'IAM_ACCESS_ANALYZER'
+        ):
+            cls.session_iam_aa = boto3.session.Session(
+                profile_name=cls.profile_iam_access_analyzer,
+                region_name=cls.region
+            )
 
     @classmethod
     def init_data_perimeter_definition(cls):
@@ -232,6 +248,8 @@ class Variables:
         cls.set_var("profile_athena_access", var_file)
         cls.set_var("profile_config_access", var_file)
         cls.set_var("profile_org_access", var_file)
+        cls.set_var("external_access_findings", var_file, default=False)
+        cls.set_var("profile_iam_access_analyzer", var_file)
         cls.set_var("config_aggregator_name", var_file, mandatory=True)
         cls.set_var("athena_workgroup", var_file, mandatory=True)
         cls.set_var("athena_database", var_file, mandatory=True)
@@ -259,6 +277,36 @@ class Variables:
             var_file,
             default=True
         )
+
+    @classmethod
+    def augment_variables(cls) -> None:
+        target_list_account_id = []
+        if len(cls.list_account_id) == 1 and cls.list_account_id[0] == 'all':
+            cls.list_account_id = utils.get_list_all_accounts()
+            return None
+        for item in cls.list_account_id:
+            if regex_is_accountid.match(item):
+                target_list_account_id.append(item)
+            else:
+                target_list_account_id.append(
+                    utils.get_account_id_from_name(item)
+                )
+        if len(cls.list_ou_id) > 0:
+            for item in cls.list_ou_id:
+                if item.startswith('ou-'):
+                    target_list_account_id.extend(
+                        utils.get_ou_descendant(item)
+                    )
+                else:
+                    target_list_account_id.extend(
+                        utils.get_ou_descendant(
+                            utils.get_ou_id_from_name(
+                                item
+                            )
+                        )
+                    )
+        cls.list_account_id = list(set(target_list_account_id))
+        return None
 
     @classmethod
     def validate_variables(cls) -> None:

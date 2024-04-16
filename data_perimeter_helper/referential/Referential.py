@@ -52,6 +52,8 @@ class Referential:
         assert isinstance(list_resources, list)  # nosec: B101
         nb_items = len(list_resources)
         str_resource_type = " | ".join(list_resources)
+        if nb_items == 0:
+            return
         if nb_items > 1:
             msg = f"{nb_items} resource types to collect: {str_resource_type}"
         else:

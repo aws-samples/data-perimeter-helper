@@ -9,6 +9,13 @@ default:
   profile_config_access: 
   #  Credential profile to use for access to AWS organization (cf. README file for required permissions)
   profile_org_access: 
+  # Optional variable to configure the retrieval of AWS IAM Access Analyzer external access findings.
+  # If set to 'IAM_ACCESS_ANALYZER', then the external access findings will be retrieved from AWS IAM Access Analyzer.
+  # If set to 'SECURITY_HUB', then the external access findings will be retrieved from AWS SecurityHub (see README file for more details).
+  # If not set or with another value, then the external access findings will not be retrieved.
+  external_access_findings: 'SECURITY_HUB'
+  #  Credential profile to use for access to AWS IAM Access Analyzer findings (cf. README file for required permissions)
+  profile_iam_access_analyzer:
   #  AWS Config aggregator name
   config_aggregator_name: 
   #  Athena Workgroup name
@@ -26,13 +33,13 @@ default:
   athena_table_name_mgmt_data_event:
   athena_table_name_mgmt_event: 
   athena_table_name_data_event: 
-  # partition_date_regex can be equal to 
-  #   - A regex following date format and supported by Athena
-  #         - Example: '2023/03/%' for all queries performed in March 2023
-  #   - Not set
-  # If partition_date_regex is not set then partition_date_start and partition_date_end need to be set
+  # Use only one of the following variable(s): 
+  # partition_date_regex
+  # partition_date_start AND partition_date_end
+  # partition_date_interval
   partition_date_regex: # Example: 2023/05/%
   partition_date_start: # Example: 2023/05/01
   partition_date_end:  # Example: 2023/05/30
+  partition_date_interval:  # Example: 1 month, following units are supported: minute|hour|day|month|year
   # If use_parameterized_queries is not set or set to True, then parameterized queries are used
   use_parameterized_queries: true

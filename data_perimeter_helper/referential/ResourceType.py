@@ -55,7 +55,7 @@ class ResourceType:
 
     def get_df(self, *args, **kwargs) -> pandas.DataFrame:
         """Get dataframe with resources, if the dataframe is not initialized,
-        populate the dataframe by calling the attribute get_all_fct"""
+        populate the dataframe by calling the function populate"""
         if self.dataframe is not None:
             return self.dataframe
         logger.debug("[-] Getting resource type: %s", self.type_name)

@@ -32,10 +32,10 @@ def get_available_resource_type() -> List[Dict[str, str]]:
     list_referential_file = []
     excluded_files = [
         'config_adv',
+        'generic',
+        'import_referential',
         'Referential',
         'ResourceType',
-        'import_referential',
-        'generic'
     ]
     for file in list_file:
         file_name = str(file.stem)
@@ -52,10 +52,10 @@ def get_available_resource_type() -> List[Dict[str, str]]:
 def instanciate_class(
     list_referential_file: List[Dict[str, str]]
 ) -> None:
-    """Import queries from 'queries' folder, then instanciate them"""
+    """Import queries from 'referential' folder, then instanciate them"""
     try:
         for file in list_referential_file:
-            logger.debug("importing: %s", str(file['module_path']))
+            logger.debug("Importing: %s", str(file['module_path']))
             module = importlib.import_module(  # nosemgrep: non-literal-import
                 str(file['module_path'])
             )
