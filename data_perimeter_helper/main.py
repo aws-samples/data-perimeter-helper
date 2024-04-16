@@ -147,7 +147,6 @@ def export_referential(list_export_format: List[str]) -> None:
 
 
 def query_per_account(
-    # list_account_id: List[str],
     queries: Dict[str, Dict[str, Dict[str, Union[str, Query]]]],
     list_export_format: List[str]
 ) -> None:
@@ -227,7 +226,6 @@ def query_per_account(
 
 
 def query_in_parrallel(
-    # list_account_id: List[str],
     queries: Dict[str, Dict[str, Dict[str, Union[str, Query]]]],
     list_export_format: List[str],
 ):
