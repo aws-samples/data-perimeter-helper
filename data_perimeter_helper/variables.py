@@ -21,6 +21,7 @@ from pathlib import (
 )
 
 import boto3
+from botocore.config import Config
 
 from data_perimeter_helper.toolbox import (
     utils
@@ -35,7 +36,7 @@ regex_date = re.compile(
     r"^(\d{1,4})/(\d{2})/(\d{2})$"
 )
 regex_date_interval = re.compile(
-    r"^(?P<interval>\d{1}) (?P<unit>minute|hour|day|month|year)$",
+    r"^(?P<interval>\d{1,}) (?P<unit>day|month|year)$",
     re.IGNORECASE
 )
 regex_is_accountid = re.compile(r"^\d{12}$")
@@ -115,6 +116,7 @@ class Variables:
     # result path
     result_export_folder = str(package_parent_path / "outputs")  # Folder name for outputs
     thread_max_worker = min(32, (os.cpu_count() or 1) + 4)  # Number of workers for threading
+    thread_max_worker_organizations = 3
     print_query = False
     print_result = False
     use_parameterized_queries = True
@@ -128,6 +130,7 @@ class Variables:
     dph_configuration = None
     dph_configuration_baseline = None
     dph_configuration_per_account: Dict[str, dict] = {}
+    standalone_query_types = ["referential", "findings"]
 
     def __init__(
         self,
@@ -170,8 +173,16 @@ class Variables:
             profile_name=cls.profile_org_access,
             region_name=cls.region
         )
+        client_config_bump_max_attemps = Config(
+            retries={
+                'max_attempts': 15
+            }
+        )
         cls.config_client = cls.session_config.client("config")
-        cls.org_client = cls.session_org.client("organizations")
+        cls.org_client = cls.session_org.client(
+            "organizations",
+            config=client_config_bump_max_attemps
+        )
         if cls.external_access_findings in (
             'SECURITY_HUB', 'IAM_ACCESS_ANALYZER'
         ):
@@ -270,8 +281,13 @@ class Variables:
             regex_res = regex_date_interval.search(
                 Variables.partition_date_interval
             )
-            Variables.partition_date_interval_value = regex_res.group('interval')
-            Variables.partition_date_interval_unit = regex_res.group('unit')
+            if regex_res is not None:
+                Variables.partition_date_interval_value = regex_res.group('interval')
+                Variables.partition_date_interval_unit = regex_res.group('unit')
+            else:
+                raise ValueError(
+                    f"Invalid date format - partition_date_interval in {variable_file_path}"
+                )
         cls.set_var(
             "use_parameterized_queries",
             var_file,
@@ -282,6 +298,10 @@ class Variables:
     def augment_variables(cls) -> None:
         target_list_account_id = []
         if len(cls.list_account_id) == 1 and cls.list_account_id[0] == 'all':
+            logger.debug(
+                "-la CLI parameter set to `all`,"
+                " expanding the list of account..."
+            )
             cls.list_account_id = utils.get_list_all_accounts()
             return None
         for item in cls.list_account_id:
@@ -296,14 +316,6 @@ class Variables:
                 if item.startswith('ou-'):
                     target_list_account_id.extend(
                         utils.get_ou_descendant(item)
-                    )
-                else:
-                    target_list_account_id.extend(
-                        utils.get_ou_descendant(
-                            utils.get_ou_id_from_name(
-                                item
-                            )
-                        )
                     )
         cls.list_account_id = list(set(target_list_account_id))
         return None
@@ -347,9 +359,12 @@ class Variables:
         """Get data perimeter definition for a given account id and
         configuration type (example:, network_perimeter_expected_vpc)"""
         assert isinstance(cls.dph_configuration_per_account, dict)  # nosec: B101
-        return cls.dph_configuration_per_account.get(
-            account_id, {}
-        ).get(configuration_key, {})
+        if account_id not in cls.dph_configuration_per_account:
+            assert isinstance(cls.dph_configuration_baseline, dict)  # nosec: B101
+            return cls.dph_configuration_baseline.get(configuration_key, [])
+        return cls.dph_configuration_per_account.get(account_id, {}).get(
+            configuration_key, {}
+        )
 
     @classmethod
     def get_baseline_configuration(

@@ -45,8 +45,7 @@ class ExternalAccessAnalyzer():
     cache_boto3_client: Dict[str, Dict[str, BaseClient]] = {}
     boto3_config_increase_retry = Config(
         retries={
-            'max_attempts': 10,
-            'mode': 'standard'
+            'max_attempts': 15
         }
     )
 
@@ -207,7 +206,12 @@ class ExternalAccessAnalyzer():
                 if exception:
                     raise exception
                 result.extend(request_in_pool.result())
-        log_msg = f"{len(result)} external access findings retrieved!"
+        if account_id is not None:
+            f"{len(result)} external access findings retrieved!"
+            f" for account {account_id} (source: AWS IAM Access Analyzer)"
+        else:
+            log_msg = f"{len(result)} external access findings retrieved!"\
+                      " (source: AWS IAM Access Analyzer)"
         tqdm.write(
             utils.color_string(
                 utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD
@@ -252,7 +256,14 @@ class ExternalAccessAnalyzer():
         if cache_key in cls.cache_describe_findings:
             logger.debug("[+] Found cached results for key %s", cache_key)
             return cls.cache_describe_findings[cache_key]
-        tqdm.write(f"{utils.Icons.HAND_POINTING} Describing external access findings for region {region}...")
+        if account_id is not None:
+            log_msg = "Retrieving external access findings for"\
+                f" account {account_id} in region {region}"\
+                " (source: AWS IAM Access Analyzer)..."
+        else:
+            log_msg = "Retrieving external access findings for"\
+                f" region {region} (source: AWS IAM Access Analyzer)..."
+        tqdm.write(f"{utils.Icons.HAND_POINTING}{log_msg}")
         list_account_id = None if account_id is None else [account_id]
         list_resource_type = None if resource_type is None else [resource_type]
         list_finding = cls.api_list_findings_v2(

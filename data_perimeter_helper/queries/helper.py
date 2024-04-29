@@ -122,16 +122,24 @@ def get_athena_date_partition() -> str:
 def get_athena_sql_limit(account_id: str) -> int:
     """Get SQL limit field"""
     try:
-        list_sql_limit = Var.get_account_configuration(
+        athena_sql_limit = Var.get_account_configuration(
             account_id=account_id,
             configuration_key="athena_sql_limit"
         )
-        max_sql_limit = max([int(x) for x in list_sql_limit])
+        max_sql_limit = None
+        if isinstance(athena_sql_limit, list):
+            max_sql_limit = max([int(x) for x in athena_sql_limit])
+        elif isinstance(athena_sql_limit, int):
+            max_sql_limit = athena_sql_limit
     except ValueError:
-        logger.debug("[~] No SQL limit has been set")
+        logger.warning(
+            "[~] No SQL limit has been set for account %s", account_id
+        )
         return 0
     if max_sql_limit is None:
-        logger.debug("[~] No SQL limit has been set")
+        logger.debug(
+            "[~] No SQL limit has been set for account %s", account_id
+        )
         return 0
     logger.debug(
         "[~] SQL limit: %s, account ID: %s", max_sql_limit, account_id
@@ -336,3 +344,35 @@ def get_athena_dph_configuration(
             or_stmt.append(f"""regexp_like({column_name}, ?)""")
         statement = f"""AND ({" OR ".join(or_stmt)})"""
     return comment_injected_sql(statement, configuration_key)
+
+
+def get_ou_descendant(ou_id: str) -> List[str]:
+    """Return all descendants under an OU ID"""
+    df = Referential.get_resource_type(
+        resource_type="AWS::Organizations::Account"
+    ).dataframe
+    assert isinstance(df, pandas.DataFrame)  # nosec: B101
+    list_descendant = []
+    for account_id, list_parent in zip(df['accountid'], df['parent']):
+        if ou_id in list_parent:
+            list_descendant.append(
+                account_id
+            )
+    if len(list_descendant) == 0:
+        logger.warning(
+            "No descendant found for organizational unit ID: %s",
+            ou_id
+        )
+    return list_descendant
+
+
+def get_account_id_from_name(account_name: str) -> str:
+    df = Referential.get_resource_type(
+        resource_type="AWS::Organizations::Account"
+    ).dataframe
+    assert isinstance(df, pandas.DataFrame)  # nosec: B101
+    for account_id, account_name_ in zip(df['accountid'], df['name']):
+        if account_name_ == account_name:
+            return account_id
+    account_id = df[df["name"] == account_name]
+    raise ValueError(f"Account name {account_name} not found")

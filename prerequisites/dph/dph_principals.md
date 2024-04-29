@@ -120,8 +120,8 @@
             "Effect": "Allow",
             "Action": [
                 "organizations:ListAccounts",
-                "organizations:ListParents",
-                "organizations:DescribeOrganizationalUnit"
+                "organizations:ListChildren",
+                "organizations:ListRoots"
             ],
             "Resource": [
                 "*"
@@ -149,7 +149,8 @@
     ]
 }
 ```
-You then need to add the following statements depending on which data source you use, AWS IAM Access Analyzer or AWS Security Hub.
+
+You then need to add the following statements if you use as a data source AWS IAM Access Analyzer or AWS Security Hub.
 
 ### 4.a If the variable `external_access_findings` is set to `IAM_ACCESS_ANALYZER`
 ```jsonc

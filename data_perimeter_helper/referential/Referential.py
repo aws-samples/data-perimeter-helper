@@ -86,7 +86,7 @@ class Referential:
                         pool[request_in_pool]['start_time']  # type: ignore
                     )
                     log_msg = "Get resource type completed for "\
-                        f"`{resource_type}` in {exec_time}"
+                        f"`{resource_type}` in {exec_time}!"
                     pbar.write(
                         utils.color_string(
                             utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD

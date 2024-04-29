@@ -418,6 +418,45 @@ UNION ALL
             )
         ]
 
+    def add_column_is_network_perimeter_human_role(
+        self,
+        dataframe: pandas.DataFrame
+    ) -> None:
+        """Add column isNetworkPerimeterHumanRole to provided DataFrame"""
+        logger.debug(
+            "[~] Enriching data with column: isNetworkPerimeterHumanRole"
+        )
+        list_account_id = helper.get_list_account_id()
+        if list_account_id is None:
+            return
+        if not utils.df_columns_exist(
+            dataframe,
+            {'principal_accountid', 'principalid'}
+        ):
+            logger.error(
+                "Unable to perform operation"
+                " `add_column_is_network_perimeter_human_role`"
+                " for query: %s",
+                self.name
+            )
+            return
+        dataframe['isNetworkPerimeterHumanRole'] = [
+            "PRINCIPAL_NOT_IN_ORGANIZATION"
+            if pandas.isna(account_id) or account_id not in list_account_id
+            else (
+                Referential.get_resource_attribute(
+                    resource_type="AWS::IAM::Role",
+                    lookup_value=role_id.split(":")[0] if ":" in role_id else role_id,
+                    lookup_column='roleId',
+                    attribute='isNetworkPerimeterHumanRole'
+                )
+                if not pandas.isna(role_id) else pandas.NA
+            )
+            for account_id, role_id in zip(
+                dataframe['principal_accountid'], dataframe['principalid']
+            )
+        ]
+
     @staticmethod
     def is_service_role_used_by_service_not_in_trust_policy(
         list_service_trust_policy: Union[List[str], NAType],
@@ -509,24 +548,23 @@ UNION ALL
             "[~] Removing calls by principals that are not service roles"
             " from AWS service networks"
         )
-        # 2. Drop API calls from AWS service networks by principals
-        # that are not service roles nor service-linked roles
-        # 2.1 Add the column isServiceLinkedRole if it does not exit
-        drop_is_service_linked_role = False
+        # 2. Drop API calls made by human roles from AWS service networks.
+        # 2.1 Add the column isNetworkPerimeterHumanRole if it does not exist.
+        drop_is_network_perimeter_human_role = False
         if not utils.df_columns_exist(
-            dataframe, {'isServiceLinkedRole'}, log_error=False
+            dataframe, {'isNetworkPerimeterHumanRole'}, log_error=False
         ):
-            self.add_column_is_service_linked_role(dataframe)
-            drop_is_service_linked_role = True
+            self.add_column_is_network_perimeter_human_role(dataframe)
+            drop_is_network_perimeter_human_role = True
+        # 2.2 Drop calls made by human roles from AWS service networks.
         dataframe = dataframe.drop(
             dataframe[
-                dataframe['isServiceRole'].isin([False, 'False'])
-                & dataframe['isServiceLinkedRole'].isin([False, 'False'])
+                dataframe['isNetworkPerimeterHumanRole'].isin([True, 'True'])
                 & dataframe['sourceipaddress'].str.contains("amazonaws")
             ].index
         )
-        if drop_is_service_linked_role is True:
-            dataframe = dataframe.drop(columns=['isServiceLinkedRole'])
+        if drop_is_network_perimeter_human_role is True:
+            dataframe = dataframe.drop(columns=['isNetworkPerimeterHumanRole'])
         return dataframe
 
     def remove_calls_by_service_linked_role(

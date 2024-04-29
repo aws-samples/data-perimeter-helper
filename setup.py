@@ -39,7 +39,7 @@ if os.path.isfile(requirement_path):
 
 
 extras_require = {
-    'test': ['pytest==8.0.1']
+    'test': ['pytest==8.2.0']
 }
 
 

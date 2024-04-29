@@ -2,13 +2,8 @@
 # -*- coding: utf-8 -*-
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
-"""Entry point for Data perimeter helper
-Help
-data_perimeter_helper -h
-
-Examples:
-data_perimeter_helper -la <ACCOUNT_ID> -lq <QUERY_NAME>
-data_perimeter_helper -la <ACCOUNT_ID> -lq all
+"""Entry point for the data perimeter helper tool.
+See README file for instructions.
 """
 # PEP 366 - Main module explicit relative imports:
 # https://peps.python.org/pep-0366/
@@ -22,7 +17,7 @@ if __name__ == "__main__" and __package__ is None:
     sys.path.append(package_parent_path)
     print(
         "[~] Execution outside package detected, below path has been added, "
-        f"sys.path += {package_parent_path}"
+        f"sys.path += {package_parent_path}."
     )
 import logging
 from typing import (
@@ -118,18 +113,20 @@ def export_all_queries(
             list_items=df_per_account[account_id],
             account_id=account_id
         )
-    # Export referential queries
-    referential_queries_result: List[Dict[str, Union[str, pandas.DataFrame]]] = df_per_account.get("referential", [])
-    if len(referential_queries_result) > 0:
+    # Export standalone queries
+    for standalone_query_type in Var.standalone_query_types:
+        result = df_per_account.get(standalone_query_type, [])
+        if len(result) == 0:
+            continue
         export_to_file(
             list_export_format=list_export_format,
-            list_items=referential_queries_result,
-            account_id="referential"
+            list_items=result,
+            account_id=standalone_query_type
         )
 
 
 def export_referential(list_export_format: List[str]) -> None:
-    """Export referential (example:, results from AWS Config advanced queries)"""
+    """Export referential"""
     list_dataframes: List[Dict[str, Union[str, pandas.DataFrame]]] = []
     registry = Referential.get_resource_type_registry_items()
     for resource_type, res in registry:
@@ -151,19 +148,19 @@ def query_per_account(
     list_export_format: List[str]
 ) -> None:
     """For a given account, performs all the requested queries
-    :param account_id: List of AWS account IDs
     :param list_query: List of queries to be applied
     :return: List of pandas dataframes with all queries results
     """
     Var.augment_variables()
+    nb_standalone_query = 0
+    for standalone_query_type in Var.standalone_query_types:
+        nb_standalone_query += len(queries.get(standalone_query_type, {}))
     standard_queries = queries.get("standard", {})
-    referential_queries = queries.get("referential", {})
     nb_query = (len(Var.list_account_id) * len(standard_queries)) +\
-        len(referential_queries)
+        nb_standalone_query
     df_per_account: Dict[str, List[Dict[str, Union[str, pandas.DataFrame]]]] = {}
     with tqdm(
-        total=nb_query,
-        desc="Nb queries performed: ", unit="Queries", position=99
+        total=nb_query, desc="Nb queries performed: ", unit="Queries"
     ) as pbar:
         # Manage standard queries
         for account_id in Var.list_account_id:
@@ -183,7 +180,7 @@ def query_per_account(
                     }
                 )
                 log_msg = f"Completed query `{query_name}` for account"\
-                    f" {account_id} in {exec_time}"
+                    f" {account_id} in {exec_time}!"
                 pbar.write(
                     utils.color_string(
                         utils.Icons.FULL_CHECK_GREEN + log_msg,
@@ -192,32 +189,34 @@ def query_per_account(
                 )
                 logger.debug(log_msg)
                 pbar.update(1)
-        # Manage referential queries
-        df_per_account["referential"] = []
-        for query_name, query_value in referential_queries.items():
-            start_time = perf_counter()
-            assert isinstance(query_value['instance'], Query)  # nosec: B101
-            result = query_value['instance'].submit_query(
-                account_id="referential"
-            )
-            exec_time = utils.get_elapsed_time(start_time)
-            df_per_account["referential"].append(
-                {
-                    'name': query_name,
-                    'query': result['query'],
-                    'dataframe': result['dataframe'],
-                    'exec_time': exec_time
-                }
-            )
-            log_msg = f"Completed referential query `{query_name}`"\
-                f" in {exec_time}"
-            pbar.write(
-                utils.color_string(
-                    utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD
+        # Manage standalone queries not tied to an account
+        for standalone_query_type in Var.standalone_query_types:
+            df_per_account[standalone_query_type] = []
+            standalone_queries = queries.get(standalone_query_type, {})
+            for query_name, query_value in standalone_queries.items():
+                start_time = perf_counter()
+                assert isinstance(query_value['instance'], Query)  # nosec: B101
+                result = query_value['instance'].submit_query(
+                    account_id=standalone_query_type
                 )
-            )
-            logger.debug(log_msg)
-            pbar.update(1)
+                exec_time = utils.get_elapsed_time(start_time)
+                df_per_account[standalone_query_type].append(
+                    {
+                        'name': query_name,
+                        'query': result['query'],
+                        'dataframe': result['dataframe'],
+                        'exec_time': exec_time
+                    }
+                )
+                log_msg = f"Completed {standalone_query_type} query `{query_name}`"\
+                    f" in {exec_time}!"
+                pbar.write(
+                    utils.color_string(
+                        utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD
+                    )
+                )
+                logger.debug(log_msg)
+                pbar.update(1)
     export_all_queries(
         list_account_id=Var.list_account_id,
         df_per_account=df_per_account,
@@ -231,7 +230,6 @@ def query_in_parrallel(
 ):
     """Runs queries by using threads
     Number of concurrent threads is defined in variables.py file
-    :param list_account_id: List of AWS account IDs retrieved from CLI args
     :param queries: Dict with queries
     :raises exception: if a thread returns an exceptions
     """
@@ -241,13 +239,14 @@ def query_in_parrallel(
     Var.augment_variables()
     df_per_account: Dict[str, List[Dict[str, Union[str, pandas.DataFrame]]]] = {}
     pool = {}
+    nb_standalone_query = 0
+    for standalone_query_type in Var.standalone_query_types:
+        nb_standalone_query += len(queries.get(standalone_query_type, {}))
     standard_queries = queries.get("standard", {})
-    referential_queries = queries.get("referential", {})
     nb_query = (len(Var.list_account_id) * len(standard_queries)) +\
-        len(referential_queries)
+        nb_standalone_query
     with tqdm(
-        total=nb_query, desc="Nb queries performed: ",
-        unit="Queries", position=99
+        total=nb_query, desc="Nb queries performed: ", unit="Queries"
     ) as pbar:
         with ThreadPoolExecutor(max_workers=Var.thread_max_worker) as executor:
             # Manage standard queries
@@ -264,19 +263,20 @@ def query_in_parrallel(
                     }
                     for query_name, query_value in standard_queries.items()
                 })
-            # Manage referential queries
-            df_per_account["referential"] = []
-            for query_name, query_value in referential_queries.items():
-                assert isinstance(query_value['instance'], Query)  # nosec: B101
+            # Manage standalone queries not tied to an account
+            for standalone_query_type in Var.standalone_query_types:
+                standalone_queries = queries.get(standalone_query_type, {})
+                df_per_account[standalone_query_type] = []
                 pool.update({
                     executor.submit(
-                        query_value['instance'].submit_query,
-                        "referential"
+                        query_value['instance'].submit_query,  # type: ignore
+                        standalone_query_type
                     ): {
-                        'account_id': "referential",
+                        'account_id': standalone_query_type,
                         'query_name': query_name,
                         'start_time': perf_counter()
                     }
+                    for query_name, query_value in standalone_queries.items()
                 })
             for request_in_pool in concurrent_completed(pool):
                 exception = request_in_pool.exception()
@@ -294,12 +294,12 @@ def query_in_parrallel(
                     'dataframe': result['dataframe'],
                     'exec_time': exec_time
                 })
-                if account_id == "referential":
-                    log_msg = f"Completed referential query `{query_name}`"\
-                        f" in {exec_time}"
+                if account_id in Var.standalone_query_types:
+                    log_msg = f"Completed {account_id} query `{query_name}`"\
+                        f" in {exec_time}!"
                 else:
                     log_msg = f"Completed query `{query_name}` for account"\
-                        f" {account_id} in {exec_time}"
+                        f" {account_id} in {exec_time}!"
                 pbar.write(
                     utils.color_string(
                         utils.Icons.FULL_CHECK_GREEN + log_msg,
@@ -369,5 +369,5 @@ def main(args=None) -> int:
 
 
 if __name__ == "__main__":
-    # Called when this file is directly executed
+    # Called when this script is directly executed
     main()

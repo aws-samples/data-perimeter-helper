@@ -100,7 +100,7 @@ class ResourceType:
         lookup_id: str,
         lookup_column: str
     ) -> bool:
-        """Return ture is the resource is found"""
+        """Return True is the resource is found, False otherwise"""
         return isinstance(
             self.lookup(lookup_id, lookup_column),
             pandas.DataFrame

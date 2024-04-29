@@ -170,7 +170,7 @@ The following list provides common `data perimeter helper` commands:
   $ dph --list-account/-la <ACCOUNT_ID> --list-query/-lq <QUERY_NAME>
   ```
 
-You can use `--list-account/-la` with an account ID or an account name.
+You can use `--list-account/-la` with an account ID.
 
 3.	Run a specific query on multiple accounts.
 
@@ -179,17 +179,18 @@ You can use `--list-account/-la` with multiple account IDs or account names:
   $ dph --list-account/-la <ACCOUNT_ID_1> <ACCOUNT_ID_2> -lq <QUERY_NAME>
   ```
 
+If your account name contains spaces but the name under quotes.
+
 You can run your query across all your organization by setting `--list-account/-la` to `all`:
   ```shell
   $ dph --list-account/-la all -lq <QUERY_NAME>
   ```
 
-If you want to run your query against accounts descendant of specific organizational units, you can use `--list-ou/-lo` with multiple organizational unit IDs or organizational unit names:
+If you want to run your query against accounts descendant of specific organizational units, you can use `--list-ou/-lo` with multiple organizational unit IDs:
   ```shell
   $ dph --list-ou/-lo <OU_ID_1> <OU_ID_2> -lq <QUERY_NAME>
   ```
 
-If one of your account names or organizational unit names contains space, put it under quote `"`.
 
 4.	Run a specific query on one account using the substring of a query name:
   ```shell

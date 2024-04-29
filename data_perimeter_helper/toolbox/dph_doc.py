@@ -105,7 +105,7 @@ DATA_PROCESSING_DOCUMENTATION = {
     "result = self.remove_calls_by_service_linked_role(result)": "Remove API calls made by service-linked roles inventoried in AWS Config aggregator.",
     "result = self.remove_calls_from_service_on_behalf_of_principal(": """Remove a subset of API calls made by an AWS service using [forward access sessions (FAS)](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_forward_access_sessions.html):
   - API calls made from an AWS service network by using a service role and where the `sourceipaddress` field in the CloudTrail record is populated with the service's DNS name that does not match the ones specified in the role's trust policy.
-  - API calls made from an AWS service network by a principal that is neither a service role nor a service-linked role and where the `sourceipaddress` field in the CloudTrail record is populated with the service's DNS name.""",
+  - API calls made from an AWS service network by network perimeter human roles - retrieved from the `data perimeter helper` configuration file (`network_perimeter_human_role_arn` parameter).""",
     "result = self.remove_expected_vpc_id(": "Remove API calls from expected VPCs - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc` parameter).",
     "result = helper_s3.remove_call_on_bucket_in_organization(result)": "Remove API calls on S3 buckets inventoried in AWS Config aggregator.",
     "result = ExternalAccessAnalyzer.describe_findings_as_df(": "Add AWS IAM Access Analyzer external access findings",
@@ -119,10 +119,11 @@ ADD_COLUMN_DOCUMENTATION = {
     "self.add_column_is_service_linked_role(result)": "isServiceLinkedRole",
 }
 
-logger = utils.configure_logging(
-    Var.logging_export_folder_path,
-    Var.logging_file_name
-)
+if True:
+    logger = utils.configure_logging(
+        Var.logging_export_folder_path,
+        Var.logging_file_name
+    )
 
 
 def quality_gate_expected_instruction_present(
