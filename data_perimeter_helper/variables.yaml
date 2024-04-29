@@ -40,6 +40,6 @@ default:
   partition_date_regex: # Example: 2023/05/%
   partition_date_start: # Example: 2023/05/01
   partition_date_end:  # Example: 2023/05/30
-  partition_date_interval:  # Example: 1 month, following units are supported: minute|hour|day|month|year
+  partition_date_interval:  # Example: 1 month, following units are supported: day|month|year
   # If use_parameterized_queries is not set or set to True, then parameterized queries are used
   use_parameterized_queries: true

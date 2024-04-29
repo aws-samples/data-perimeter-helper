@@ -33,13 +33,13 @@ class lambda_function(ResourceType):
     https://github.com/awslabs/aws-config-resource-schema/blob/master/config/properties/resource-types/AWS%3A%3ALambda%3A%3AFunction.properties.json
         :return: DataFrame with all Lambda functions
         """
-        config_query = '''
+        config_query = f'''
 SELECT
     accountId,
     arn,
     configuration.vpcConfig.subnetIds
 WHERE
-    resourceType = 'AWS::Lambda::Function'
+    resourceType = '{self.type_name}'
 '''
         logger.debug("[-] Submitting Config advanced query")
         results = config_adv.submit_config_advanced_query(

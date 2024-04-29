@@ -35,7 +35,7 @@ Below filters are applied:
 - Remove API calls from expected VPCs - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc` parameter).
 - Remove a subset of API calls made by an AWS service using [forward access sessions (FAS)](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_forward_access_sessions.html):
   - API calls made from an AWS service network by using a service role and where the `sourceipaddress` field in the CloudTrail record is populated with the service's DNS name that does not match the ones specified in the role's trust policy.
-  - API calls made from an AWS service network by a principal that is neither a service role nor a service-linked role and where the `sourceipaddress` field in the CloudTrail record is populated with the service's DNS name.
+  - API calls made from an AWS service network by network perimeter human roles - retrieved from the `data perimeter helper` configuration file (`network_perimeter_human_role_arn` parameter).
 
 
 ### Query details
@@ -106,7 +106,7 @@ GROUP BY
 - Remove API calls from expected VPCs - retrieved from the `data perimeter helper` configuration file (`network_perimeter_expected_vpc` parameter).
 - Remove a subset of API calls made by an AWS service using [forward access sessions (FAS)](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_forward_access_sessions.html):
   - API calls made from an AWS service network by using a service role and where the `sourceipaddress` field in the CloudTrail record is populated with the service's DNS name that does not match the ones specified in the role's trust policy.
-  - API calls made from an AWS service network by a principal that is neither a service role nor a service-linked role and where the `sourceipaddress` field in the CloudTrail record is populated with the service's DNS name.
+  - API calls made from an AWS service network by network perimeter human roles - retrieved from the `data perimeter helper` configuration file (`network_perimeter_human_role_arn` parameter).
 </details>
 
 

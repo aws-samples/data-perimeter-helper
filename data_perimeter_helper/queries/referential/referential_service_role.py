@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 class referential_service_role(Query):
-    """List all service roles inventoried in your AWS Config aggregator.
+    """List the service roles inventoried in your AWS Config aggregator.
 You can use this query, for example, to review your service roles and check if the correct tagging strategy is in place.
     """  # noqa: W291
     def __init__(self, name):
@@ -46,7 +46,7 @@ You can use this query, for example, to review your service roles and check if t
         self,
         account_id: str
     ) -> Dict[str, Union[str, pandas.DataFrame]]:
-        """Submit an Athena SQL query and perform data processing"""
+        """Submit a query and perform data processing"""
         dataframe = Referential.get_resource_type("AWS::IAM::Role").dataframe
         assert isinstance(dataframe, pandas.DataFrame)  # nosec: B101
         # Remove principals that are not service roles
@@ -55,9 +55,13 @@ You can use this query, for example, to review your service roles and check if t
                 dataframe['isServiceRole'].isin([False, 'False'])
             ].index
         )
-        simplified_df = dataframe.drop(columns=[
-            'isServiceRole', 'isServiceLinkedRole'
-        ])
+        # Keep only relevant columns
+        simplified_df = dataframe[
+            [
+                'accountId', 'roleId', 'arn', 'listTags',
+                'allowedPrincipalList'
+            ]
+        ]
         if Var.print_result:
             logger.info(simplified_df)
         return {

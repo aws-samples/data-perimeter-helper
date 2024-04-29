@@ -17,6 +17,7 @@ from tqdm import (
 from botocore.exceptions import (
     ClientError
 )
+from botocore.config import Config
 
 from data_perimeter_helper.variables import Variables as Var
 from data_perimeter_helper.toolbox import utils
@@ -42,9 +43,15 @@ class SecurityHub():
             return
         SecurityHub.enabled = True
         assert Var.session_iam_aa is not None  # nosec: B101
+        client_sh_bump_max_attemps = Config(
+            retries={
+                'max_attempts': 15
+            }
+        )
         SecurityHub.sh_client = Var.session_iam_aa.client(
             'securityhub',
-            region_name=Var.region
+            region_name=Var.region,
+            config=client_sh_bump_max_attemps
         )
 
     @classmethod
@@ -110,8 +117,11 @@ class SecurityHub():
                     'Value': str(account_id),
                 }
             ]
-        log_msg = "Retrieving external access findings..."\
-            " (source: AWS Security Hub)"
+            log_msg = "Retrieving external access findings for account "\
+                f"{account_id} (source: AWS Security Hub)..."
+        else:
+            log_msg = "Retrieving external access findings..."\
+                " (source: AWS Security Hub)"
         tqdm.write(utils.Icons.HAND_POINTING + log_msg)
         logger.debug(log_msg)
         for offset in range(0, nb_analyzer, max_filter_size):
@@ -129,8 +139,12 @@ class SecurityHub():
                 SecurityHub.api_get_findings(filter)
             )
         cls.cache_iam_aa_findings[cache_key] = findings
-        log_msg = f"{len(findings)} external access findings retrieved!"
-        " (source: AWS Security Hub)"
+        if account_id is not None:
+            log_msg = f"{len(findings)} external access findings retrieved!"\
+                      f" for account {account_id} (source: AWS Security Hub)"
+        else:
+            log_msg = f"{len(findings)} external access findings retrieved!"\
+                      " (source: AWS Security Hub)"
         tqdm.write(
             utils.color_string(
                 utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD

@@ -22,6 +22,9 @@ from data_perimeter_helper.queries.Query import (
 from data_perimeter_helper.toolbox import (
     utils
 )
+from data_perimeter_helper.variables import (
+    Variables as Var
+)
 
 
 logger = logging.getLogger(__name__)
@@ -66,9 +69,10 @@ def import_query(
 ) -> Dict[str, Dict[str, Dict[str, Union[str, Query]]]]:
     """Import queries from 'queries' folder, then instanciate them"""
     dict_query_instance: Dict[str, Dict[str, Dict[str, Union[str, Query]]]] = {
-        "referential": {},
         "standard": {}
     }
+    for standalone_query in Var.standalone_query_types:
+        dict_query_instance[standalone_query] = {}
     try:
         for selected_query in list_selected_query:
             module = importlib.import_module(  # nosemgrep: non-literal-import
@@ -78,10 +82,10 @@ def import_query(
             query_instance = getattr(module, selected_query)(
                 name=selected_query,
             )
-            if "referential" in selected_query:
-                query_type = "referential"
-            else:
-                query_type = "standard"
+            query_type = "standard"  # default value
+            for standalone_query in Var.standalone_query_types:
+                if selected_query.startswith(standalone_query):
+                    query_type = standalone_query
             dict_query_instance[query_type][selected_query] = {
                 'instance': query_instance,
                 'folder_path': available_query[selected_query]['folder_path'],

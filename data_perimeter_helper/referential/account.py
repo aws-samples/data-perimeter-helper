@@ -7,19 +7,23 @@ This module hosts the class `account` used to retrieve accounts data
 through AWS Organizations API calls
 """
 import logging
-from typing import (
-    List,
-    Dict,
-    Optional,
-    Union,
-)
 from concurrent.futures import (
     ThreadPoolExecutor,
     Future,
     as_completed as concurrent_completed
 )
+from typing import (
+    List,
+    Dict,
+    Union,
+    Literal,
+    Optional
+)
 
 import pandas
+from tqdm import (
+    tqdm
+)
 from botocore.exceptions import (
     ClientError
 )
@@ -27,6 +31,7 @@ from botocore.exceptions import (
 from data_perimeter_helper.variables import (
     Variables as Var
 )
+from data_perimeter_helper.toolbox import utils
 from data_perimeter_helper.referential.ResourceType import ResourceType
 
 
@@ -35,13 +40,11 @@ logger = logging.getLogger(__name__)
 
 class account(ResourceType):
     """All accounts"""
-    # Cache to avoid redundand calls to AWS Organizations API, key is the child
-    # ID and the value its parent ID
-    cache_direct_parent: Dict[str, str] = {}
     cache_account_in_org_unit_boundary: Dict[str, List[str]] = {}
-    cache_ou_by_id: Dict[str, Dict[str, str]] = {}
-    cache_ou_by_name: Dict[str, Dict[str, str]] = {}
-    USE_THREAD_FOR_LIST_PARENT = True
+    root_id = None
+    list_tree_path: List[List[str]] = []
+    list_parents_per_children: Dict[str, List[str]] = {}
+    QUOTA_MAX_OU = 5
 
     def __init__(self):
         super().__init__(
@@ -51,29 +54,13 @@ class account(ResourceType):
 
     def populate(self, *args, **kwargs) -> pandas.DataFrame:
         """List all AWS account ID in the AWS organization
-        :type org_client: boto3.client, optional
         :return: DataFrame with all account ids
         :rtype: pandas.DataFrame
         """
         logger.debug("[~] Retrieving list of all accounts in the organization")
-        assert Var.org_client is not None  # nosec: B101
-        paginator = Var.org_client.get_paginator('list_accounts')
-        page_iterator = paginator.paginate()
-        results = []
-        for page in page_iterator:
-            for item in page['Accounts']:
-                res = {
-                    'accountid': item['Id'],
-                    'name': item['Name'],
-                }
-                if account.USE_THREAD_FOR_LIST_PARENT is False:
-                    res['parent'] = self.get_list_all_parents(item['Id'])
-                results.append(res)
-        if account.USE_THREAD_FOR_LIST_PARENT is True:
-            account.get_list_all_parents_thread(results)
-        logger.debug("[~] List of retrieved accounts: %s", results)
-        df = pandas.DataFrame.from_dict(results)  # type: ignore
-        account.describe_all_parents(df)
+        list_account = self.list_account()
+        self.add_parent_to_list_account(list_account)
+        df = pandas.DataFrame.from_dict(list_account)  # type: ignore
         org_unit_boundary_definition = account.get_org_unit_boundary_definition()
         if org_unit_boundary_definition is None:
             return df
@@ -85,39 +72,89 @@ class account(ResourceType):
         ]
         return df
 
-    @classmethod
-    def describe_all_parents(cls, df: pandas.DataFrame) -> None:
-        """Describe all parents"""
-        all_parents = []
-        # Build a distinct list of OU IDs
-        for list_parent_id in df['parent']:
-            all_parents.extend(list_parent_id)
-        all_parents = list(set(all_parents))
-        logger.debug("[~] List of all parents: %s", all_parents)
-        # Describe each list item using threads
-        cls.api_describe_ou_thread(all_parents)
-        # Update the initial dataframe
-        df['parent_name'] = [
-            cls.get_ou_name_for_list(
-                list_parent_id
-            )
-            for list_parent_id in df['parent']
-        ]
-
     @staticmethod
-    def api_describe_ou_thread(all_parents: List[str]) -> None:
-        """Perform the API describe OU using threads"""
-        pool: Dict[Future, dict] = {}
-        # Number of worker divided by two to manage nested threads
+    def list_account() -> List[Dict[str, Union[str, List[str]]]]:
+        """List all accounts"""
+        assert Var.org_client is not None  # nosec: B101
+        log_msg = "Listing accounts..."
+        tqdm.write(utils.Icons.HAND_POINTING + log_msg)
+        list_account = []
+        try:
+            paginator = Var.org_client.get_paginator('list_accounts')
+            page_iterator = paginator.paginate()
+            for page in page_iterator:
+                for item in page['Accounts']:
+                    list_account.append({
+                        'accountid': item['Id'],
+                        'name': item['Name'],
+                    })
+        except ClientError as error:
+            logger.error("[!] Error from AWS client: %s", error.response)  # nosemgrep: logging-error-without-handling
+            if error.response['Error']['Code'] == 'AccessDeniedException':
+                logger.error(
+                    "[!] Principal is not authorized to perform"
+                    " [organizations:ListAccounts]"
+                )
+            raise
+        nb_account = len(list_account)
+        logger.debug("[~] %s account retrieved: %s", nb_account, list_account)
+        log_msg = f"{nb_account} accounts retrieved!"
+        tqdm.write(utils.Icons.INFO + log_msg)
+        return list_account
+
+    @classmethod
+    def add_parent_to_list_account(
+        cls,
+        list_account: List[Dict[str, Union[str, List[str]]]]
+    ):
+        log_msg = "Listing organizational units (OUs)..."
+        tqdm.write(utils.Icons.HAND_POINTING + log_msg)
+        cls.get_all_ou()
+        log_msg = "Listing OU children..."
+        tqdm.write(utils.Icons.HAND_POINTING + log_msg)
+        cls.get_ou_children_thread()
+        for dict_account in list_account:
+            account_id = dict_account['accountid']
+            assert isinstance(account_id, str)  # nosec: B101
+            list_parent = cls.list_parents_per_children.get(account_id)
+            if list_parent is None:
+                raise ValueError(
+                    "List of parents has **not** been retrieved for "
+                    f"account {account_id}"
+                )
+            dict_account['parent'] = list_parent
+
+    @classmethod
+    def get_all_ou(
+        cls,
+        parent_id: Optional[str] = None,
+        tree_path: Optional[List] = None
+    ):
+        """Parse the organization tree starting from the root"""
+        if parent_id is None:
+            parent_id = cls.get_root_id()
+            cls.list_tree_path.append([parent_id])
+        if tree_path is None:
+            tree_path = [parent_id]
+        if len(tree_path) > cls.QUOTA_MAX_OU + 1:
+            return
+        list_direct_ou = cls.get_direct_children_per_type_org_api(
+            parent_id, 'ORGANIZATIONAL_UNIT'
+        )
+        if len(list_direct_ou) == 0:
+            cls.list_tree_path.append(tree_path)
+            return
+        pool: Dict[Future, None] = {}
         with ThreadPoolExecutor(
-            max_workers=int(Var.thread_max_worker / 2)
+            max_workers=Var.thread_max_worker_organizations
         ) as executor:
-            for ou_id in all_parents:
+            for direct_ou in list_direct_ou:
                 pool.update({
                     executor.submit(
-                        account.api_describe_ou,
-                        ou_id
-                    ): {}
+                        cls.get_all_ou,
+                        direct_ou,
+                        tree_path + [direct_ou]
+                    ): None
                 })
             for request_in_pool in concurrent_completed(pool):
                 exception = request_in_pool.exception()
@@ -125,121 +162,93 @@ class account(ResourceType):
                     raise exception
 
     @classmethod
-    def get_ou_name_for_list(cls, list_ou_id: List[str]) -> List[str]:
-        """Return a list of OU name with a list of OU IDs as input"""
-        return [
-            cls.get_ou_name(ou_id)
-            for ou_id in list_ou_id
-        ]
-
-    @classmethod
-    def get_ou_name(cls, ou_id: str) -> str:
-        """Get the name of an OU using its ID"""
-        return cls.api_describe_ou(ou_id)['Name']
-
-    @classmethod
-    def api_describe_ou(cls, ou_id: str) -> Dict[str, str]:
-        """Describe parents of a list of accounts
-        returns Dict['Id', 'Arn', 'Name']
-        """
-        if ou_id in cls.cache_ou_by_id:
-            return cls.cache_ou_by_id[ou_id]
-        if ou_id.startswith('r-'):
-            return {'Id': 'N/A', 'Arn': 'N/A', 'Name': 'Root'}
+    def get_root_id(cls):
+        """Get the root ID"""
+        if cls.root_id is not None:
+            return account.root_id
         assert Var.org_client is not None  # nosec: B101
         try:
-            res = Var.org_client.describe_organizational_unit(
-                OrganizationalUnitId=ou_id
-            )['OrganizationalUnit']
-            cls.cache_ou_by_id[ou_id] = res
-            cls.cache_ou_by_name[res['Name']] = res
-            return res
+            res_api = Var.org_client.list_roots()
+            cls.root_id = res_api['Roots'][0]['Id']
         except ClientError as error:
             logger.error("[!] Error from AWS client: %s", error.response)  # nosemgrep: logging-error-without-handling
             if error.response['Error']['Code'] == 'AccessDeniedException':
                 logger.error(
                     "[!] Current principal is not authorized to perform"
-                    " [organizations:DescribeOrganizationalUnit]"
+                    " [organizations:ListRoots]"
+                )
+            raise
+        return cls.root_id
+
+    @staticmethod
+    def get_direct_children_per_type_org_api(
+        child_id: str,
+        child_type: Literal['ACCOUNT', 'ORGANIZATIONAL_UNIT']
+    ) -> List[str]:
+        """Call AWS Organizations APIs to retrieve direct children.
+        The API supports root ID or OU ID"""
+        try:
+            results: List[str] = []
+            assert Var.org_client is not None  # nosec: B101
+            paginator = Var.org_client.get_paginator('list_children')
+            page_iterator = paginator.paginate(
+                ParentId=child_id,
+                ChildType=child_type
+            )
+            for page in page_iterator:
+                retry_attempts = page['ResponseMetadata']['RetryAttempts']
+                if retry_attempts > 1:
+                    logger.debug("Retry attempts: %s", retry_attempts)
+                if retry_attempts > 10:
+                    logger.warning("Retry attempts: %s", retry_attempts)
+                for item in page['Children']:
+                    results.append(item['Id'])
+            return results
+        except ClientError as error:
+            logger.error("[!] Error from AWS client: %s", error.response)  # nosemgrep: logging-error-without-handling
+            if error.response['Error']['Code'] == 'AccessDeniedException':
+                logger.error(
+                    "[!] Current principal is not authorized to perform"
+                    " [organizations:ListChildren]"
                 )
             raise
 
-    @staticmethod
-    def get_list_all_parents_thread(list_account):
+    @classmethod
+    def get_ou_children_thread(cls) -> None:
+        """Get the list of OU children"""
+        logger.debug("Getting list of OU children")
         pool = {}
-        # Number of worker divided by two to manage nested threads
+        list_last_descendant: List[Dict[str, Union[str, List[str]]]] = []
+        for tree_path in cls.list_tree_path:
+            list_last_descendant.append({
+                'ou_id': tree_path[-1],
+                'tree_path': tree_path
+            })
         with ThreadPoolExecutor(
-            max_workers=int(Var.thread_max_worker / 2)
+            max_workers=Var.thread_max_worker_organizations
         ) as executor:
-            for dict_account in list_account:
+            for last_descendant in list_last_descendant:
+                ou_id = last_descendant.get('ou_id')
+                assert isinstance(ou_id, str)  # nosec: B101
                 pool.update({
                     executor.submit(
-                        account.get_list_all_parents,
-                        dict_account['accountid']
-                    ): {
-                        'dict_account': dict_account
-                    }
+                        cls.get_direct_children_per_type_org_api,
+                        ou_id,
+                        'ACCOUNT'
+                    ): last_descendant
                 })
             for request_in_pool in concurrent_completed(pool):
                 exception = request_in_pool.exception()
                 if exception:
                     raise exception
-                dict_account = pool[request_in_pool]['dict_account']
-                dict_account['parent'] = request_in_pool.result()
-
-    @staticmethod
-    def get_list_all_parents(
-        child_id: str,
-        list_parent: Optional[List[str]] = None,
-        depth: int = 1
-    ) -> List[str]:
-        """Get all parents of a given child in AWS Organizations"""
-        # max depth is 6 since max nested OU quotas is 5 and root is counted
-        # as a member of the org path
-        if depth > 6:
-            raise ValueError("Too many nested OU")
-        if list_parent is None:
-            list_parent = []
-        # if the parent has been cached, return the known parent id
-        if child_id in account.cache_direct_parent:
-            parent_id = account.cache_direct_parent[child_id]
-        # else perform API call
-        else:
-            parent_id = account.get_direct_parent_org_api(child_id)
-            if parent_id is None:
-                return list_parent
-            account.cache_direct_parent[child_id] = parent_id
-        list_parent.append(
-            parent_id
-        )
-        if parent_id.startswith('r-'):
-            return list_parent
-        return account.get_list_all_parents(
-            parent_id, list_parent, depth + 1
-        )
-
-    @staticmethod
-    def get_direct_parent_org_api(child_id: str) -> str:
-        """Call AWS Organizations APIs to retrieve direct parent of a child.
-        The API supports AWS account ID or OU ID - root ID is not supported"""
-        try:
-            assert Var.org_client is not None  # nosec: B101
-            parent = Var.org_client.list_parents(
-                ChildId=child_id
-            ).get('Parents', [])
-            parent_id = parent[0].get('Id')
-            if parent_id is None:
-                raise ValueError(
-                    "Parent of an AWS organization member must have an Id"
-                )
-            return parent_id
-        except ClientError as error:
-            logger.error("[!] Error from AWS client: %s", error.response)  # nosemgrep: logging-error-without-handling
-            if error.response['Error']['Code'] == 'AccessDeniedException':
-                logger.error(
-                    "[!] Current principal is not authorized to perform"
-                    " [organizations:ListParents]"
-                )
-            raise
+                list_direct_account = request_in_pool.result()
+                request_tree_path = pool[request_in_pool]['tree_path']
+                assert isinstance(request_tree_path, list)  # nosec: B101
+                if len(list_direct_account) != 0:
+                    for direct_account in list_direct_account:
+                        cls.list_parents_per_children[direct_account] =\
+                            request_tree_path
+        return None
 
     def get_account_in_org_unit_boundary(
         self,
@@ -315,13 +324,3 @@ class account(ResourceType):
                 if parent_id in org_unit:
                     list_category_name.append(category_name)
         return list(set(list_category_name))
-
-    @classmethod
-    def get_ou_id_from_name(
-        cls,
-        ou_name: str
-    ) -> str:
-        """Get the OU ID from its name"""
-        if ou_name in cls.cache_ou_by_name:
-            return cls.cache_ou_by_name[ou_name]['Id']
-        raise ValueError(f"OU name {ou_name} not found")
