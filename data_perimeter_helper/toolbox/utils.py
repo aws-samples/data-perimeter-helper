@@ -6,6 +6,7 @@
 This module hosts shared utils functions
 """
 import logging
+import json
 import re
 import math
 from os import (
@@ -213,9 +214,25 @@ def current_time() -> float:
     return perf_counter()
 
 
+def get_elasped_timestamp(start_time: float) -> float:
+    return current_time() - start_time
+
+
 def get_elapsed_time(start_time: float) -> str:
     """Return elapsed"""
-    return strftime("%Hh:%Mm:%Ss", gmtime(current_time() - start_time))
+    return strftime("%Hh:%Mm:%Ss", gmtime(get_elasped_timestamp(start_time)))
+
+
+def has_expired(
+    start_time: float,
+    expire_day: int = 0,
+    expire_hour: int = 0,
+    expire_minute: int = 0,
+    expire_second: int = 0
+) -> bool:
+    """Return True if the elapsed timestamp has expired"""
+    return get_elasped_timestamp(start_time) >\
+        (expire_day * 1440 + expire_hour * 60 + expire_minute) * 60 + expire_second
 
 
 def color_string(input: str, color: str) -> str:
@@ -353,3 +370,20 @@ def get_ou_descendant(ou_id: str) -> List[str]:
 
 def get_account_id_from_name(account_name: str) -> str:
     return helper.get_account_id_from_name(account_name)
+
+
+def get_ou_id_from_name(ou_name: str) -> str:
+    return helper.get_ou_id_from_name(ou_name)
+
+
+def read_json_file(
+    file_path: str
+) -> dict:
+    """Read a json file"""
+    try:
+        with open(file_path) as file:
+            return json.load(file)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File '{file_path}' not found.")
+    except json.JSONDecodeError:
+        raise RuntimeError(f"Error decoding JSON file '{file_path}'.")

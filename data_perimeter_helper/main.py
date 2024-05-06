@@ -362,6 +362,7 @@ def main(args=None) -> int:
             )
         if arguments.export_referential:
             export_referential(list_export_format=arguments.list_export_format)
+        Referential.export_to_cache()
     except BaseException:
         logger.exception("[!] Fatal expection catched")  # nosemgrep: logging-error-without-handling
         raise

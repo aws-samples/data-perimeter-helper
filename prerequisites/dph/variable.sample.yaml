@@ -41,3 +41,8 @@ default:
   partition_date_interval:  # Example: 1 month, following units are supported: minute|hour|day|month|year
   # If use_parameterized_queries is not set or set to true, then parameterized queries are used
   use_parameterized_queries: true
+  cache_referential: true
+  cache_expire_after_interval: 7 day # Example: 1 month, following units are supported: minute|hour|day|month
+  list_resource_type_to_cache:
+    - AWS::Organizations::Account
+    - AWS::Organizations::Tree

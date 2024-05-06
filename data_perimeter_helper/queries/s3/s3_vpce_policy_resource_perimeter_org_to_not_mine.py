@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class s3_vpce_policy_resource_perimeter_org_to_not_mine(Query):
     """This query is similar to [`s3_vpce_policy_resource_perimeter_account_to_not_mine`](./s3_vpce_policy_resource_perimeter_account_to_not_mine.py) but analyzes activity at the organization level instead of the selected account level. This can be useful if principals from others AWS accounts are used in a given AWS account.      
-You can use this query to accelerate implementation of the [**resource perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using VPC endpoint policies.
+You can use this query to accelerate implementation of the [**resource perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using VPC endpoint policies.
 
 > Note: this query is performed on all accounts within your organization. Depending on your organization size, this query can take several minutes to complete and generate additionnal costs.
     """  # noqa: W291

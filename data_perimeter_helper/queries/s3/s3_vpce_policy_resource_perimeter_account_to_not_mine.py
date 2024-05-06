@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class s3_vpce_policy_resource_perimeter_account_to_not_mine(Query):
     """List S3 API calls made by principals and through S3 VPC endpoints in the selected account on S3 buckets not inventoried in the AWS Config aggregator.    
-You can use this query to accelerate implementation of your [**resource perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using VPC endpoint policies.
+You can use this query to accelerate implementation of your [**resource perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using VPC endpoint policies.
     """  # noqa: W291
     def __init__(self, name):
         self.name = name

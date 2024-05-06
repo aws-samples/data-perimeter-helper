@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class common_network_perimeter_ipv4(Query):
     """List AWS API calls that do not align with your expected networks definition documented in the `data perimeter helper` configuration file.  
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls.
 If the number of results is too high, we recommend is to use a `data perimeter helper` query tied to an AWS service (example: `s3` queries for Amazon S3).
     """  # noqa: W291
     def __init__(self, name):

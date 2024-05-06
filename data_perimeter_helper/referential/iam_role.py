@@ -67,12 +67,6 @@ WHERE
         logger.debug("[+] Converting results to DataFrame")
         self.detect_duplicate(df)
         logger.debug("[-] Enriching result")
-        # Flat the list of tags [{'key': "mykey", 'value': "myvalue"}]
-        df['listTags'] = [
-            iam_role.flat_list_tag(list_tag)
-            for list_tag in df['tags']
-        ]
-        df = df.drop(columns=['tags'])
         # URL decode trust policy
         df['assumeRolePolicyDocument'] = [
             json.loads(urllib.parse.unquote(trust_policy))

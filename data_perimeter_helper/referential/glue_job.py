@@ -69,9 +69,17 @@ WHERE
                 'Connections.Connections': 'ConnectionNames'
             }
         )
+        df_configuration = df_configuration.replace(
+            {
+                "true": True,
+                "false": False
+            }
+        )
+        df_configuration = df_configuration.fillna(pandas.NA).replace(
+            {pandas.NA: None}
+        )
         df = pandas.concat([df, df_configuration], axis=1)
         # Dropping uneeded columns
         df = df.drop(columns=['configuration'])
-        df = df.fillna(value="Not set")
         logger.debug("[+] Converting results to DataFrame")
         return df

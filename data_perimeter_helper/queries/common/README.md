@@ -21,7 +21,7 @@ The `common` queries are prefixed with the keyword `common` and are **not** tied
 ### Query description
 
 List AWS API calls made from public IPv4 addresses.   
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls by reviewing API calls made from public IPv4 addresses. You can then use the global condition key [aws:SourceIp](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourceip) to help ensure your API calls are only made from expected public CIDR ranges.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls by reviewing API calls made from public IPv4 addresses. You can then use the global condition key [aws:SourceIp](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourceip) to help ensure your API calls are only made from expected public CIDR ranges.
 
 ### Query results filtering
 
@@ -96,7 +96,7 @@ GROUP BY
 ### Query description
 
 List AWS API calls that do not align with your expected networks definition documented in the `data perimeter helper` configuration file.  
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls.
 If the number of results is too high, we recommend to use a `data perimeter helper` query tied to an AWS service (example: `s3` queries for [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html)).
     
 ### Query results filtering
@@ -247,7 +247,7 @@ GROUP BY
 
 List AWS API calls made by service-linked roles (SLRs).   
 You can use this query to review the API calls performed by your service-linked roles.
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) and [**identity perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) and [**identity perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls.
     
 ### Query results filtering
 
@@ -297,7 +297,7 @@ GROUP BY
 ### Query description
 
 List AWS API calls made by service roles from AWS service networks.   
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls.
     
 ### Query results filtering
 
@@ -367,7 +367,7 @@ GROUP BY
 ### Query description
 
 List AWS API calls made through any VPC endpoints.  
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls by reviewing API calls made through through a VPC endpoint. You can then use the global condition keys [aws:SourceVpce](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcevpce) or [aws:SourceVpc](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcevpc) to ensure that your API calls are only made through your expected VPC endpoint IDs or VPC IDs, respectively.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls by reviewing API calls made through through a VPC endpoint. You can then use the global condition keys [aws:SourceVpce](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcevpce) or [aws:SourceVpc](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcevpc) to ensure that your API calls are only made through your expected VPC endpoint IDs or VPC IDs, respectively.
     
 ### Query results filtering
 

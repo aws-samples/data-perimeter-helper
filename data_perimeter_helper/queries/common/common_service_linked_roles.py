@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class common_service_linked_roles(Query):
     """List AWS API calls made by service-linked roles (SLRs).   
 You can use this query to review the API calls performed by your service-linked roles.
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls.
     """  # noqa: W291
     def __init__(self, name):
         self.name = name

@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.3] - 2024/05/06
+
+### Added
+- You can now enable caching for the referential items. The following new [variables](./data_perimeter_helper/variables.yaml) are introduced:
+    - `cache_referential` (boolean): denotes if caching is enabled.
+    - `cache_expire_after_interval` (str): interval of time after which the cache expires. The expected format is "<value> <unit>" where <value> is an integer and <unit> is equal to `minute`, `hour`, `day`, or `month`.
+    - `list_resource_type_to_cache` (list[str]): list of resource types to cache. If not set, all resource types are cached. Otherwise, only the set resource types are cached.
+- You can now use a new custom resource type `AWS::Organizations::Tree`. This resource type provides the account IDs, names, list of account's parents and organizational unit (OU) boundaries. This enables to discover the organization tree structure when relevant - notably for queries with the boundary at the OU scope.
+- You can now use the query `referential_vpce` to list your Amazon Virtual Private Cloud (VPC) endpoints across your organization. The query provides fields to help you discover VPC endpoints that use in their policy the [AWS global condition context keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html) aws:PrincipalOrgId/PrincipalOrgPaths/PrincipalAccount and aws:ResourceOrgId/ResourceOrgPaths/ResourceAccount.
+- You can now use the query `referential_scp` to list your service control policies (SCPs). The query provides fields to help you discover policies that use the [AWS global condition context keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html) aws:ResourceOrgId/ResourceOrgPaths/ResourceAccount, aws:SourceVPC, aws:SourceVPCe, and aws:SourceIP. The query exports the SCPs to readable JSON files under a subfolder `scp` of your configured output folder.
+- The CLI parameter `--list-ou/-lo` supports organizational unit names.
+- Unit tests for CLI parameters.
+
+### Updated
+- The resource type `AWS::Organizations::Account` only provides the list of account IDs and names. The list of parents and organizational unit (OU) boundaries are moved to the new resource type `AWS::Organizations::Tree`.
+- The queries at the OU boundary have been updated to add as a dependency the resource type `AWS::Organizations::Tree`.
+- Minor documentation updates.
+
+
 ## [1.0.2] - 2024/04/26
 
 ### Added
@@ -22,7 +41,7 @@ All notable changes to this project will be documented in this file.
 - Bumped requirements versions.
 
 ### Removed
-- The CLI parameter `--list-ou/-lo` does no more support account names - this feature is removed to accelerate the execution time.
+- The CLI parameter `--list-ou/-lo` does no more support organizational unit names.
 
 
 ## [1.0.1] - 2024/04/16

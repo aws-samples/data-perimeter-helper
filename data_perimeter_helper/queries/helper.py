@@ -27,8 +27,8 @@ from data_perimeter_helper.toolbox import (
 from data_perimeter_helper.referential.Referential import (
     Referential
 )
-from data_perimeter_helper.referential.account import (
-    account
+from data_perimeter_helper.referential.organization_tree import (
+    organization_tree
 )
 
 
@@ -236,14 +236,14 @@ def get_athena_account_org_unit_boundary(
     the same OU boundaries than the selected account ID"""
     # Get account ResourceType object
     account_resource_type = Referential.get_resource_type(
-        resource_type="AWS::Organizations::Account"
+        resource_type="AWS::Organizations::Tree"
     )
-    assert isinstance(account_resource_type, account)  # nosec: B101
+    assert isinstance(account_resource_type, organization_tree)  # nosec: B101
     # Get account's orgUnitBoundary attribute
     # The function `get_resource_attribute` returns a string representation
     # of a list
     str_account_org_unit_boundary = Referential.get_resource_attribute(
-        resource_type="AWS::Organizations::Account",
+        resource_type="AWS::Organizations::Tree",
         lookup_value=account_id,
         lookup_column='accountid',
         attribute='orgUnitBoundary',
@@ -349,7 +349,7 @@ def get_athena_dph_configuration(
 def get_ou_descendant(ou_id: str) -> List[str]:
     """Return all descendants under an OU ID"""
     df = Referential.get_resource_type(
-        resource_type="AWS::Organizations::Account"
+        resource_type="AWS::Organizations::Tree"
     ).dataframe
     assert isinstance(df, pandas.DataFrame)  # nosec: B101
     list_descendant = []
@@ -367,6 +367,7 @@ def get_ou_descendant(ou_id: str) -> List[str]:
 
 
 def get_account_id_from_name(account_name: str) -> str:
+    """Return the ID of an account given its name"""
     df = Referential.get_resource_type(
         resource_type="AWS::Organizations::Account"
     ).dataframe
@@ -376,3 +377,18 @@ def get_account_id_from_name(account_name: str) -> str:
             return account_id
     account_id = df[df["name"] == account_name]
     raise ValueError(f"Account name {account_name} not found")
+
+
+def get_ou_id_from_name(ou_name: str) -> str:
+    """Return the ID of an organizational unit given its name"""
+    df = Referential.get_resource_type(
+        resource_type="AWS::Organizations::Tree"
+    ).dataframe
+    assert isinstance(df, pandas.DataFrame)  # nosec: B101
+    for list_parent_id, list_parent_name in zip(
+        df['parent'], df['parent_name']
+    ):
+        if ou_name in list_parent_name:
+            index = list(list_parent_name).index(ou_name)
+            return list_parent_id[index]
+    raise ValueError(f"OU name {ou_name} not found")

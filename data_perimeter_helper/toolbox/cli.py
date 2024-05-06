@@ -97,21 +97,21 @@ def setup_dph_args_parser(args) -> argparse.Namespace:
         '--print-query',
         dest="print_query",
         action='store_true',
-        help='print performed queries'
+        help='Boolean value, denotes if queries are printed to the standard input (stdin)'
     )
     optional_params.add_argument(
         '-pr',
         '--print-result',
         dest="print_result",
         action='store_true',
-        help='print results'
+        help='Boolean value, denotes if results are printed to the standard input (stdin)'
     )
     optional_params.add_argument(
         '-er',
         '--export-referential',
         dest="export_referential",
         action='store_true',
-        help='export referential items'
+        help='Boolean value, denotes if referential items are exported.'
     )
     optional_params.add_argument(
         '-dt',

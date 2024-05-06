@@ -315,7 +315,9 @@ WHERE
 ```
 This query allows you to retrieve `accountId`, `awsRegion`, and `resourceId` for any resource type inventoried by an AWS Config aggregator. If you need to retrieve additional configuration parameters, you can create a custom query by using the generic query as a template. For an example of a custom query, see [./data_perimeter_helper/referential/iam_role.py](./data_perimeter_helper/referential/iam_role.py).
 
-Finally, a custom resource has been predefined to speed up the configuration information retrieval process: `AWS::EC2::VPCEndpoint::<SERVICE_NAME>.` This resource allows to retrieve configuration information for VPC endpoints of a given service name. To retrieve configuration information for all VPC endpoints, use `AWS::EC2::VPCEndpoint`.
+The following custom resource type are available to speed up the configuration information retrieval process:
+- `AWS::EC2::VPCEndpoint::<SERVICE_NAME>`, use this resource to retrieve configuration information for VPC endpoints of a given service name. To retrieve configuration information for all VPC endpoints, use `AWS::EC2::VPCEndpoint`.
+- `AWS::Organizations::Tree`, use this resource to retrieve information for the organization structure. This resource provides the list of the account IDs, names, list of parents and the organizational unit boundaries. You need this resource for queries performed at the organizational unit boundary. `AWS::Organizations::Account` provides only the list of the account IDs and names.
 
 
 ### 4.2.2 Available functions for data processing

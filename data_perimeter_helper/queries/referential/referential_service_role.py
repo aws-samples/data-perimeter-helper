@@ -58,7 +58,7 @@ You can use this query, for example, to review your service roles and check if t
         # Keep only relevant columns
         simplified_df = dataframe[
             [
-                'accountId', 'roleId', 'arn', 'listTags',
+                'accountId', 'roleId', 'arn', 'tags',
                 'allowedPrincipalList'
             ]
         ]

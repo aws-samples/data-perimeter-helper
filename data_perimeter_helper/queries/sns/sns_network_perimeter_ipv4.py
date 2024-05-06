@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class sns_network_perimeter_ipv4(Query):
     """
 List SNS API calls filtering out calls that align with your definition of expected networks.
-You can use this query to accelerate implementation of the [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls using your SNS topic policies or service control policies (SCPs).
+You can use this query to accelerate implementation of the [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls using your SNS topic policies or service control policies (SCPs).
     """  # noqa: W291
     def __init__(self, name):
         self.name = name
