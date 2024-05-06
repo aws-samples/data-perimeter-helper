@@ -12,9 +12,9 @@ import argparse
 from typing import (
     Union,
     Optional,
+    Literal,
     List,
-    Dict,
-    Literal
+    Dict
 )
 from pathlib import (
     Path
@@ -22,6 +22,9 @@ from pathlib import (
 
 import boto3
 from botocore.config import Config
+from tqdm import (
+    tqdm
+)
 
 from data_perimeter_helper.toolbox import (
     utils
@@ -37,6 +40,10 @@ regex_date = re.compile(
 )
 regex_date_interval = re.compile(
     r"^(?P<interval>\d{1,}) (?P<unit>day|month|year)$",
+    re.IGNORECASE
+)
+regex_cache_expire_interval = re.compile(
+    r"^(?P<interval>\d{1,}) (?P<unit>minute|hour|day|month)$",
     re.IGNORECASE
 )
 regex_is_accountid = re.compile(r"^\d{12}$")
@@ -131,6 +138,13 @@ class Variables:
     dph_configuration_baseline = None
     dph_configuration_per_account: Dict[str, dict] = {}
     standalone_query_types = ["referential", "findings"]
+    # cache_configuration
+    cache_referential = False
+    cache_folder_path = str(package_parent_path / "outputs" / "cache")
+    cache_metadata: Dict[str, Dict[str, Union[str, float]]] = {}
+    list_resource_type_to_cache: List[str] = []
+    cache_expire_after_interval = None
+    cache_expire_after_in_second = None
 
     def __init__(
         self,
@@ -277,22 +291,72 @@ class Variables:
         cls.set_var("partition_date_start", var_file)
         cls.set_var("partition_date_end", var_file)
         cls.set_var("partition_date_interval", var_file)
-        if Variables.partition_date_interval is not None:
-            regex_res = regex_date_interval.search(
-                Variables.partition_date_interval
+        if cls.partition_date_interval is not None:
+            dict_partition_date_interval = cls.read_date_interval(
+                cls.partition_date_interval,
+                "partition_date_interval"
             )
-            if regex_res is not None:
-                Variables.partition_date_interval_value = regex_res.group('interval')
-                Variables.partition_date_interval_unit = regex_res.group('unit')
-            else:
-                raise ValueError(
-                    f"Invalid date format - partition_date_interval in {variable_file_path}"
-                )
+            cls.partition_date_interval_value = dict_partition_date_interval['value']
+            cls.partition_date_interval_unit = dict_partition_date_interval['unit']
         cls.set_var(
             "use_parameterized_queries",
             var_file,
             default=True
         )
+        cls.set_var("cache_referential", var_file, False)
+        if cls.cache_referential is True:
+            try:
+                cls.cache_metadata = utils.read_json_file(
+                    f"{cls.cache_folder_path}/metadata.json"
+                )
+                logger.debug("Metadata cache: %s", cls.cache_metadata)
+            except FileNotFoundError:
+                logger.debug("Cache metadata not found")
+        cls.set_var("list_resource_type_to_cache", var_file)
+        if isinstance(cls.list_resource_type_to_cache, str):
+            cls.list_resource_type_to_cache = [cls.list_resource_type_to_cache]
+        if not isinstance(cls.list_resource_type_to_cache, list):
+            cls.list_resource_type_to_cache = []
+        cls.set_var("cache_expire_after_interval", var_file, "1 day")
+        if cls.cache_expire_after_interval is not None:
+            dict_cache_expire_after = cls.read_date_interval(
+                cls.cache_expire_after_interval,
+                "cache_expire_after",
+                regex_cache_expire_interval
+            )
+            unit = dict_cache_expire_after['unit']
+            val = int(dict_cache_expire_after['value'])
+            if unit == 'minute':
+                cls.cache_expire_after_in_second = val * 60
+            elif unit == 'hour':
+                cls.cache_expire_after_in_second = val * 60 * 60
+            elif unit == 'day':
+                cls.cache_expire_after_in_second = val * 24 * 60 * 60
+            elif unit == 'month':
+                cls.cache_expire_after_in_second = val * 31 * 24 * 60 * 60
+            else:
+                raise ValueError(
+                    f"Invalid unit {unit} for cache_expire_after in {variable_file_path}"
+                )
+
+    @staticmethod
+    def read_date_interval(
+        value: str,
+        var_name: str,
+        compiled_regex: re.Pattern[str] = regex_date_interval
+    ):
+        """Read a date interval in the format `value(int) unit(string)`, a
+        valid example is: `7 day`"""
+        regex_res = compiled_regex.search(value)
+        if regex_res is not None:
+            return {
+                'value': regex_res.group('interval'),
+                'unit': regex_res.group('unit')
+            }
+        else:
+            raise ValueError(
+                f"Invalid date format, {var_name}: {value} in {Variables.variable_yaml_full_path}"
+            )
 
     @classmethod
     def augment_variables(cls) -> None:
@@ -303,21 +367,38 @@ class Variables:
                 " expanding the list of account..."
             )
             cls.list_account_id = utils.get_list_all_accounts()
-            return None
-        for item in cls.list_account_id:
-            if regex_is_accountid.match(item):
-                target_list_account_id.append(item)
-            else:
-                target_list_account_id.append(
-                    utils.get_account_id_from_name(item)
-                )
+        else:
+            for item in cls.list_account_id:
+                if regex_is_accountid.match(item):
+                    target_list_account_id.append(item)
+                else:
+                    target_list_account_id.append(
+                        utils.get_account_id_from_name(item)
+                    )
         if len(cls.list_ou_id) > 0:
             for item in cls.list_ou_id:
                 if item.startswith('ou-'):
                     target_list_account_id.extend(
                         utils.get_ou_descendant(item)
                     )
-        cls.list_account_id = list(set(target_list_account_id))
+                else:
+                    target_list_account_id.extend(
+                        utils.get_ou_descendant(
+                            utils.get_ou_id_from_name(
+                                item
+                            )
+                        )
+                    )
+        target_set_account_id = set(target_list_account_id)
+        list_has_changed = len(
+            target_set_account_id - set(cls.list_account_id)
+        ) > 0
+        cls.list_account_id = list(target_set_account_id)
+        logger.debug(cls.list_account_id)
+        if list_has_changed:
+            str_list_account_id = " | ".join(cls.list_account_id)
+            log_msg = f"Selected account ID(s): {str_list_account_id}"
+            tqdm.write(utils.Icons.HAND_POINTING + log_msg)
         return None
 
     @classmethod

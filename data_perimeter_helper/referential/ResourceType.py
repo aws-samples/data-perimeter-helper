@@ -17,7 +17,16 @@ import pandas
 from pandas._libs.missing import (
     NAType
 )
+from tqdm import (
+    tqdm
+)
 
+from data_perimeter_helper.toolbox import (
+    utils
+)
+from data_perimeter_helper.variables import (
+    Variables as Var
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +38,7 @@ class ResourceType:
     def __init__(
         self,
         type_name: str,
-        unknown_value: str = "RESOURCE_NOT_IN_REFERENTIAL"
+        unknown_value: str = "RESOURCE_NOT_IN_REFERENTIAL",
     ) -> None:
         """
         Init a resource type
@@ -44,6 +53,7 @@ class ResourceType:
         logger.debug("Initialization of resource type: %s", self.type_name)
         self.unknown_value = unknown_value
         self.dataframe: Optional[pandas.DataFrame] = None
+        self.dataframe_from_cache = False
         self.lookup_cache: Dict[str, Dict[str, Union[pandas.Index, None]]] = {}
         if self.type_name not in ResourceType.registry:
             ResourceType.registry[self.type_name_lower] = self
@@ -57,6 +67,9 @@ class ResourceType:
         """Get dataframe with resources, if the dataframe is not initialized,
         populate the dataframe by calling the function populate"""
         if self.dataframe is not None:
+            return self.dataframe
+        if self.get_df_from_cache() is True:
+            assert isinstance(self.dataframe, pandas.DataFrame)  # nosec: B101
             return self.dataframe
         logger.debug("[-] Getting resource type: %s", self.type_name)
         self.dataframe = self.populate(*args, **kwargs)
@@ -161,3 +174,51 @@ class ResourceType:
     def supported_types(cls) -> List[str]:
         """Return a list of supported resources"""
         return list(cls.registry.keys())
+
+    def get_df_from_cache(self) -> bool:
+        """"""
+        if Var.cache_referential is False:
+            return False
+        if len(Var.cache_metadata) == 0:
+            return False
+        if self.type_name_lower not in Var.cache_metadata:
+            return False
+        resource_type_metadata = Var.cache_metadata[self.type_name_lower]
+        timestamp = float(resource_type_metadata['timestamp'])
+        # Check if the resource type shall be loaded from cache
+        if len(Var.list_resource_type_to_cache) > 0 and self.type_name not in Var.list_resource_type_to_cache:
+            log_msg = f"The resource type `{self.type_name}` is not listed "\
+                "in the parameter `list_resource_type_to_cache` of the "\
+                "variables file. The import of this resource type is skipped."
+            logger.debug(log_msg)
+            return False
+        # Check if the cache for this resource type has expired
+        if isinstance(Var.cache_expire_after_in_second, int) and utils.has_expired(
+            timestamp, expire_second=Var.cache_expire_after_in_second
+        ):
+            log_msg = f"The cache for resource type `{self.type_name}` "\
+                f"generated {utils.get_elapsed_time(timestamp)} ago has "\
+                "expired. The import of this resource type is skipped."
+            tqdm.write(
+                utils.color_string(
+                    utils.Icons.INFO + log_msg,
+                    utils.Colors.YELLOW
+                )
+            )
+            logger.debug(log_msg)
+            return False
+        start_time = utils.current_time()
+        self.dataframe = pandas.read_parquet(
+            str(resource_type_metadata['path'])
+        )
+        self.dataframe_from_cache = True
+        log_msg = f"Successfully imported resource type `{self.type_name}` "\
+            f"(generated {utils.get_elapsed_time(timestamp)} ago) from cache "\
+            f"in {utils.get_elapsed_time(start_time)}!"
+        tqdm.write(
+            utils.color_string(
+                utils.Icons.FULL_CHECK_GREEN + log_msg,
+                utils.Colors.GREEN_BOLD
+            )
+        )
+        return True

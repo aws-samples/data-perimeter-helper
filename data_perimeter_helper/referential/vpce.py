@@ -50,7 +50,8 @@ class vpce(ResourceType):
     configuration.serviceName,
     configuration.ownerId,
     configuration.vpcEndpointId,
-    configuration.vpcId
+    configuration.vpcId,
+    configuration.policyDocument
 WHERE
     resourceType = 'AWS::EC2::VPCEndpoint'"""
         if self.service_name is not None:

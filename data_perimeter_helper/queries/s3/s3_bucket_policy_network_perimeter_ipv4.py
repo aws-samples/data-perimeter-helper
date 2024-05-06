@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class s3_bucket_policy_network_perimeter_ipv4(Query):
     """List AWS API calls made on S3 buckets in the selected account, filtering out calls that align with your definition of expected networks.    
 This query is similar to [`common_network_perimeter_ipv4`](../common/common_network_perimeter_ipv4.py) with an additional filtering to only list API calls on S3 bucket in the selected account.  
-You can use this query to accelerate implementation of the [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls on your S3 buckets.
+You can use this query to accelerate implementation of the [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls on your S3 buckets.
     """  # noqa: W291
     def __init__(self, name):
         self.name = name

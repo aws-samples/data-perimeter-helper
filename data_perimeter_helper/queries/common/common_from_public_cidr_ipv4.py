@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class common_from_public_cidr_ipv4(Query):
     """List AWS API calls made from public IPv4 addresses.   
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls controls by reviewing API calls made from public IPv4 addresses. You can then use the global condition key [aws:SourceIp](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourceip) to help ensure your API calls are only made from expected public CIDR ranges.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls controls by reviewing API calls made from public IPv4 addresses. You can then use the global condition key [aws:SourceIp](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourceip) to help ensure your API calls are only made from expected public CIDR ranges.
     """  # noqa: W291
     def __init__(self, name):
         self.name = name

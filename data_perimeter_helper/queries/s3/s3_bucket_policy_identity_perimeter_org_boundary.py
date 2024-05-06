@@ -44,7 +44,7 @@ def explain_results(
 class s3_bucket_policy_identity_perimeter_org_boundary(Query):
     """List AWS API calls made on S3 buckets in the selected account by principals that do **NOT** belong to the same AWS organization, filtering out calls that align with your definition of trusted identities.
 
-You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organization level. You can use the global condition key [aws:PrincipalOrgId](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgid) to limit access to your resources to principals belonging to your AWS organization.
+You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organization level. You can use the global condition key [aws:PrincipalOrgId](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgid) to limit access to your resources to principals belonging to your AWS organization.
     """  # noqa: W291
     def __init__(self, name):
         self.name = name

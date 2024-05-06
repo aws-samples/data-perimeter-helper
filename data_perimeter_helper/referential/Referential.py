@@ -6,6 +6,7 @@
 This module hosts the Referential class
 """
 import logging
+import json
 from typing import (
     Optional,
     Union,
@@ -26,7 +27,10 @@ from pandas._libs.missing import (
 from tqdm import (
     tqdm
 )
-from data_perimeter_helper.toolbox import utils
+from data_perimeter_helper.toolbox import (
+    utils,
+    exporter
+)
 from data_perimeter_helper.referential import (
     vpce,
     generic
@@ -85,14 +89,16 @@ class Referential:
                     exec_time = utils.get_elapsed_time(
                         pool[request_in_pool]['start_time']  # type: ignore
                     )
-                    log_msg = "Get resource type completed for "\
-                        f"`{resource_type}` in {exec_time}!"
-                    pbar.write(
-                        utils.color_string(
-                            utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD
+                    result = request_in_pool.result()
+                    if result.dataframe_from_cache is False:
+                        log_msg = "Get resource type completed for "\
+                            f"`{resource_type}` in {exec_time}!"
+                        pbar.write(
+                            utils.color_string(
+                                utils.Icons.FULL_CHECK_GREEN + log_msg, utils.Colors.GREEN_BOLD
+                            )
                         )
-                    )
-                    logger.debug(log_msg)
+                        logger.debug(log_msg)
                     pbar.update(1)
 
     @classmethod
@@ -139,3 +145,48 @@ class Referential:
     @staticmethod
     def get_resource_type_registry_items() -> ItemsView[str, ResourceType]:
         return ResourceType.registry.items()
+
+    @classmethod
+    def export_to_cache(cls):
+        """Export referential to static file for caching"""
+        if Var.cache_referential is not True:
+            return
+        registry = cls.get_resource_type_registry_items()
+        metadata = {}
+        timestamp = utils.current_time()
+        try:
+            metadata = utils.read_json_file(
+                f"{Var.cache_folder_path}/metadata.json"
+            )
+        except FileNotFoundError:
+            logger.debug("No cache metadata found.")
+        for resource_type, resource in registry:
+            # If the dataframe is already coming from cache, skip export
+            if resource.dataframe_from_cache is True:
+                continue
+            if resource.dataframe is None:
+                continue
+            resource_type_file_name = resource_type.replace("::", "_")
+            path = exporter.write_dataframe_to_parquet(
+                dataframe=resource.dataframe,
+                export_folder=f"{Var.cache_folder_path}/",
+                file_name=resource_type_file_name,
+                file_extension="parquet"
+            )
+            metadata[resource_type] = {
+                'type_name': resource.type_name,
+                'unknown_value': resource.unknown_value,
+                'timestamp': timestamp,
+                'path': path
+            }
+        # Export the metadata
+        exporter.write_to_file(
+            export_folder=f"{Var.cache_folder_path}/",
+            file_name="metadata",
+            file_extension="json",
+            content=json.dumps(
+                metadata,
+                indent=4,
+                sort_keys=True
+            )
+        )
