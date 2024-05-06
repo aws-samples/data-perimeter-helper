@@ -23,7 +23,7 @@ The `s3` queries are prefixed with the keyword `s3`.
 
 List AWS API calls made on S3 buckets in the selected account by principals that do **NOT** belong to the same AWS organization, filtering out calls that align with your definition of trusted identities.
 
-You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organization level. You can use the global condition key [aws:PrincipalOrgId](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgid) to limit access to your resources to principals belonging to your AWS organization.
+You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organization level. You can use the global condition key [aws:PrincipalOrgId](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgid) to limit access to your resources to principals belonging to your AWS organization.
     
 ### Query results filtering
 
@@ -99,7 +99,7 @@ GROUP BY
 
 List AWS API calls made on S3 buckets in the selected account by principals that do **NOT** belong to the same organizational unit (OU) boundary, filtering out calls that align with your definition of trusted identities.
 
-You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organizational unit (OU) level. You can use the global condition key [aws:PrincipalOrgPaths](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgpaths) to limit access to your resources only to principals belonging to specific OUs.
+You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organizational unit (OU) level. You can use the global condition key [aws:PrincipalOrgPaths](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgpaths) to limit access to your resources only to principals belonging to specific OUs.
 
 You can declare your OU boundaries in the `data perimeter helper` configuration file (`org_unit_boundary` parameter).
 OU boundaries allow you to logically regroup your accounts for analysis based on their location in your AWS organization. For example, you can declare OUs `ou-xxxxx-1111111` and `ou-xxxxx-2222222` (and all OUs contained within them) as your `production` boundary. Then you can run this query for one of the accounts in these OUs to review the API calls made by principals that do **NOT** belong to the same boundary (in this example: non-production accounts).
@@ -179,7 +179,7 @@ GROUP BY
 
 List AWS API calls made on S3 buckets in the selected account, filtering out calls that align with your definition of expected networks.    
 This query is similar to [`common_network_perimeter_ipv4`](../common/common_network_perimeter_ipv4.py) with an additional filtering to only list API calls on S3 bucket in the selected account.  
-You can use this query to accelerate implementation of the [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls on your S3 buckets.
+You can use this query to accelerate implementation of the [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls on your S3 buckets.
     
 ### Query results filtering
 
@@ -274,7 +274,7 @@ GROUP BY
 ### Query description
 
 List active AWS IAM Access Analyzer external findings associated with Amazon S3 buckets.
-You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organization level. You can use the global condition key [aws:PrincipalOrgId](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgid) to limit access to your resources to principals belonging to your AWS organization.
+You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your S3 buckets at the organization level. You can use the global condition key [aws:PrincipalOrgId](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgid) to limit access to your resources to principals belonging to your AWS organization.
 
 
 # Query name: s3_scp_network_perimeter_ipv4
@@ -285,7 +285,7 @@ This query is similar to [`s3_bucket_policy_network_perimeter_ipv4`](./s3_bucket
 - No filter on S3 buckets in the selected account.
 - Filter on principals in the selected account.
 
-You can use this query to accelerate implementation of the [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls using service control policies (SCPs).
+You can use this query to accelerate implementation of the [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls using service control policies (SCPs).
     
 ### Query results filtering
 
@@ -377,7 +377,7 @@ GROUP BY
 ### Query description
 
 List AWS API calls made by principals in the selected account on Amazon S3 buckets not owned by accounts in the same organization as the selected account nor inventoried in a Config aggregator.
-You can use this query to accelerate implementation of the [**resource perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using service control policies (SCPs).
+You can use this query to accelerate implementation of the [**resource perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using service control policies (SCPs).
     
 ### Query results filtering
 
@@ -468,7 +468,7 @@ GROUP BY
 ### Query description
 
 List S3 API calls made by principals and through S3 VPC endpoints in the selected account on S3 buckets not inventoried in the AWS Config aggregator.    
-You can use this query to accelerate implementation of your [**resource perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using VPC endpoint policies.
+You can use this query to accelerate implementation of your [**resource perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using VPC endpoint policies.
     
 ### Query results filtering
 
@@ -553,6 +553,6 @@ GROUP BY
 ### Query description
 
 This query is similar to [`s3_vpce_policy_resource_perimeter_account_to_not_mine`](./s3_vpce_policy_resource_perimeter_account_to_not_mine.py) but analyzes activity at the organization level instead of the selected account level. This can be useful if principals from others AWS accounts are used in a given AWS account.      
-You can use this query to accelerate implementation of the [**resource perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using VPC endpoint policies.
+You can use this query to accelerate implementation of the [**resource perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using VPC endpoint policies.
 
 > Note: this query is performed on all accounts within your organization. Depending on your organization size, this query can take several minutes to complete and generate additionnal costs.

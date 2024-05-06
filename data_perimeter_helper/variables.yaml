@@ -43,3 +43,6 @@ default:
   partition_date_interval:  # Example: 1 month, following units are supported: day|month|year
   # If use_parameterized_queries is not set or set to True, then parameterized queries are used
   use_parameterized_queries: true
+  cache_referential: True
+  cache_expire_after_interval: # Example: 1 month, following units are supported: minute|hour|day|month
+  list_resource_type_to_cache: 

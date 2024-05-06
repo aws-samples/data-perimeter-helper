@@ -50,7 +50,7 @@ def delete_output_folder() -> None:
 
 
 @pytest.fixture(scope='session')
-def clean_outputs() -> None:
+def clean_outputs():
     """Called to delete the outputs folder if it exists then get the hand
     back to tests and attemps again to delete the outputs folder
     if it exists"""

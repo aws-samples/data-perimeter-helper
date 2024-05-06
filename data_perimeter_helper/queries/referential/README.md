@@ -12,7 +12,9 @@ The `referential` queries:
 * [referential_glue_job](#query-name-referential_glue_job)
 * [referential_lambda_function](#query-name-referential_lambda_function)
 * [referential_sagemaker_notebook](#query-name-referential_sagemaker_notebook)
+* [referential_scp](#query-name-referential_scp)
 * [referential_service_role](#query-name-referential_service_role)
+* [referential_vpce](#query-name-referential_vpce)
 
 # Query name: referential_glue_job
 
@@ -38,9 +40,28 @@ List the Amazon SageMaker notebooks inventoried in your AWS Config aggregator.
 You can use this query, for example, to review your notebook instances that allow *direct internet access*.
 For details on the direct internet access configuration, see [Connect a Notebook Instance in a VPC to External Resources](https://docs.aws.amazon.com/sagemaker/latest/dg/appendix-notebook-and-internet-access.html).
 
+# Query name: referential_scp
+
+### Query description
+
+List the service control policies (SCPs) in your organization.
+Use this query to review your SCPs and identify policies that implement resource perimeter or network perimeter controls.
+The query exports the SCPs to readable JSON files under a subfolder `scp` of your configured output folder.
+You can use this query to assess and accelerate the implemention of your [**resource perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) and [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls in your SCPs.
+
 # Query name: referential_service_role
 
 ### Query description
 
 List the service roles inventoried in your AWS Config aggregator.
 You can use this query, for example, to review your service roles and check if the correct tagging strategy is in place.
+
+
+# Query name: referential_vpce
+
+### Query description
+
+List the Amazon Virtual Private Cloud (Amazon VPC) endpoints in your Config aggregator.
+Use this query to review the VPC endpoints that have a default policy or a policy that contains one of the [AWS global condition context keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html) aws:PrincipalOrgId/PrincipalOrgPaths/PrincipalAccount or aws:ResourceOrgId/ResourceOrgPaths/ResourceAccount.
+You can use this query to assess and accelerate the implementation of your [**identity perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) and  [**resource perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls on your VPC endpoints.
+

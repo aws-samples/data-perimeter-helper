@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class common_through_vpc_endpoint(Query):
     """List AWS API calls made through any VPC endpoints.  
-You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls by reviewing API calls made through through a VPC endpoint. You can then use the global condition keys [aws:SourceVpce](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcevpce) or [aws:SourceVpc](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcevpc) to ensure that your API calls are only made through your expected VPC endpoint IDs or VPC IDs, respectively.
+You can use this query to accelerate implementation of your [**network perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-access-to-company-data-only-from-expected-networks/) controls by reviewing API calls made through through a VPC endpoint. You can then use the global condition keys [aws:SourceVpce](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcevpce) or [aws:SourceVpc](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourcevpc) to ensure that your API calls are only made through your expected VPC endpoint IDs or VPC IDs, respectively.
     """  # noqa: W291
     def __init__(self, name):
         self.name = name

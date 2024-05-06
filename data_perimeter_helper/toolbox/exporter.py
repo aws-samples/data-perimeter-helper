@@ -259,9 +259,9 @@ def export_list_dataframe_to_json(
     export_folder: Optional[str] = None,
 ) -> None:
     """Exports a list of DataFrames to json files"""
-    export_folder = export_folder or Var.result_export_folder
+    export_folder = export_folder or f"{Var.result_export_folder}/json/"
     if not export_folder.endswith('/'):
-        export_folder = f"{export_folder}/json/"
+        export_folder = f"{export_folder}/"
     utils.create_folder(export_folder)
     for item in list_items:
         write_dataframe_to_json(
@@ -272,3 +272,24 @@ def export_list_dataframe_to_json(
             item.get('exec_time'),
             item['dataframe']
         )
+
+
+def write_dataframe_to_parquet(
+    dataframe: pandas.DataFrame,
+    export_folder: str,
+    file_name: str,
+    file_extension: str = "parquet"
+) -> str:
+    """Write a pandas Dataframe to a parquet file"""
+    utils.create_folder(export_folder)
+    file_name = re.sub(
+        '[^0-9a-zA-Z]+',
+        '_',
+        file_name
+    )[0:120].lower()
+    path = f"{export_folder}{file_name}.{file_extension}"
+    dataframe.to_parquet(
+        path=path,
+        compression='gzip'
+    )
+    return path

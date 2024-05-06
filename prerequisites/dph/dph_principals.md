@@ -119,9 +119,13 @@
             "Sid": "DPHOrganization",
             "Effect": "Allow",
             "Action": [
+                "organizations:DescribeOrganizationalUnit",
+                "organizations:DescribePolicy",
                 "organizations:ListAccounts",
                 "organizations:ListChildren",
-                "organizations:ListRoots"
+                "organizations:ListPolicies",
+                "organizations:ListRoots",
+                "organizations:ListTargetsForPolicy"
             ],
             "Resource": [
                 "*"

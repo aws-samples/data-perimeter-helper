@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class s3_scp_resource_perimeter(Query):
     """List AWS API calls made by principals in the selected account on Amazon S3 buckets not owned by accounts in the same organization as the selected account nor inventoried in your Config aggregator.
-You can use this query to accelerate implementation of the [**resource perimeter**](https://aws.amazon.com/fr/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using service control policies (SCPs).
+You can use this query to accelerate implementation of the [**resource perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-resources-from-my-organization/) controls using service control policies (SCPs).
     """  # noqa: W291
     def __init__(self, name):
         self.name = name
