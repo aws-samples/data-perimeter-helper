@@ -91,6 +91,7 @@ def get_list_account_id() -> List[str]:
         resource_type="AWS::Organizations::Account"
     ).dataframe
     if isinstance(account_df, pandas.DataFrame):
+        logger.debug("Found %d accounts", len(account_df))
         return account_df['accountid'].values.tolist()
     raise ValueError("No account found")
 

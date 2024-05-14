@@ -366,7 +366,7 @@ class Variables:
                 "-la CLI parameter set to `all`,"
                 " expanding the list of account..."
             )
-            cls.list_account_id = utils.get_list_all_accounts()
+            target_list_account_id = utils.get_list_all_accounts()
         else:
             for item in cls.list_account_id:
                 if regex_is_accountid.match(item):
@@ -389,11 +389,11 @@ class Variables:
                             )
                         )
                     )
-        target_set_account_id = set(target_list_account_id)
+        set_target_list_account_id = set(target_list_account_id)
         list_has_changed = len(
-            target_set_account_id - set(cls.list_account_id)
+            set_target_list_account_id - set(cls.list_account_id)
         ) > 0
-        cls.list_account_id = list(target_set_account_id)
+        cls.list_account_id = list(set_target_list_account_id)
         logger.debug(cls.list_account_id)
         if list_has_changed:
             str_list_account_id = " | ".join(cls.list_account_id)
