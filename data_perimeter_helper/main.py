@@ -332,7 +332,10 @@ def main(args=None) -> int:
     """Main function
     :return: 0 if succeeds
     """
-    arguments = cli.setup_dph_args_parser(args)
+    arguments = cli.setup_dph_args_parser(
+        args,
+        tuple(Var.standalone_query_types)
+    )
     # Retrieve arguments that result in an exit
     if arguments.version:
         return utils.print_dph_version()

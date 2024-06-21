@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.3a] - 2024/06/21
+
+### Updated
+- The CLI parameters `-la/-lo` are no more mandatory for `findings` queries.
+- The queries that list external access findings and rely on `list_regions` to discover available regions and analyzers can now be performed from the management account. However, the recommendation is to [use the management account only for tasks that require the management account](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_best-practices_mgmt-acct.html#bp_mgmt-acct_use-mgmt). Data perimeter helper shall be used from a [`security tooling` account](https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/architecture.html).
+- Upgrade of requirements' versions.
+- Minor code lint.
+
 ## [1.0.3] - 2024/05/06
 
 ### Added
