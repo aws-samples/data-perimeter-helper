@@ -92,25 +92,14 @@ class ExternalAccessAnalyzer():
         return client
 
     @classmethod
-    def get_account_id(cls) -> str:
-        """Get the AWS account ID of the in-use boto3 session"""
-        if cls.account_id is not None:
-            return cls.account_id
-        cls.account_id = cls.get_boto3_client('sts').get_caller_identity(
-        )['Account']
-        return cls.account_id
-
-    @classmethod
     def get_enabled_regions(cls):
         """Get enabled AWS regions"""
         if len(cls.list_enabled_region) > 0:
             return cls.list_enabled_region
         list_region_code = []
-        account_id = cls.get_account_id()
         account_client = cls.get_boto3_client('account')
         try:
             list_region = account_client.list_regions(
-                AccountId=account_id,
                 RegionOptStatusContains=[
                     'ENABLED', 'ENABLED_BY_DEFAULT'
                 ]

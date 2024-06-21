@@ -149,7 +149,9 @@ def export_list_dataframe_to_html(
 
 def excel_convert_date_type(df: pandas.DataFrame) -> None:
     """Convert date types for Excel exports"""
-    date_columns = df.select_dtypes(include=['datetime64[ns, UTC]']).columns
+    date_columns = df.select_dtypes(
+        include=['datetime64[ns, UTC]']  # type: ignore
+    ).columns
     for date_column in date_columns:
         df[date_column] = df[date_column].dt.date
 

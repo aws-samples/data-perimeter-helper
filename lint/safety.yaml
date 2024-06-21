@@ -1,0 +1,7 @@
+security:
+  ignore-cvss-severity-below: 0
+  ignore-cvss-unknown-severity: False
+  ignore-vulnerabilities:
+    70612:
+      reason: The `from_string` function is not used and trusted Jinja2 templates are used. See https://data.safetycli.com/v/70612/97c/.
+      expires: '2024-10-01'

@@ -17,7 +17,10 @@ logger = logging.getLogger(__name__)
 regex_is_accountid = re.compile(r"^\d{12}$")
 
 
-def validate_args(arguments: argparse.Namespace) -> None:
+def validate_args(
+    arguments: argparse.Namespace,
+    tuple_standalone_query_type: tuple
+) -> None:
     """ Validates format of CLI arguments
 
     :param arguments: arguments provided in the CLI
@@ -35,19 +38,18 @@ def validate_args(arguments: argparse.Namespace) -> None:
     if len(list_query) == 0:
         raise ValueError("--list-query/-lq must be defined")
     if len(list_account) == 0 and len(list_ou) == 0:
-        referential_query_present = False
-        standard_query_present = False
         for query in list_query:
-            if query.startswith("referential"):
-                referential_query_present = True
-            else:
-                standard_query_present = True
-                break
-        if (referential_query_present is False) or (standard_query_present is True):
-            raise ValueError("--list-account/-la or --list-ou/-lo must be defined")
+            if not query.startswith(tuple_standalone_query_type):
+                raise ValueError(
+                    "--list-account/-la or --list-ou/-lo must be defined "
+                    f"for provided query `{query}`"
+                )
 
 
-def setup_dph_args_parser(args) -> argparse.Namespace:
+def setup_dph_args_parser(
+    args,
+    tuple_standalone_query_type: tuple
+) -> argparse.Namespace:
     """ Parser for arguments passed to command line (CLI) for dph
 
     :return: List of arguments passed to command line
@@ -172,7 +174,10 @@ def setup_dph_args_parser(args) -> argparse.Namespace:
         help='Display data perimeter helper version'
     )
     arguments = parser.parse_args(args)
-    validate_args(arguments)
+    validate_args(
+        arguments,
+        tuple_standalone_query_type
+    )
     return arguments
 
 

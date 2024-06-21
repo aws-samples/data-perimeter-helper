@@ -48,7 +48,6 @@ setup(
     version=__version__,
     description='Helper tool to build data perimeter controls',
     author='Achraf MOUSSADEK-KABDANI',
-    author_email='akabdani@amazon.com',
     license="MIT",
     install_requires=install_requires,
     extras_require=extras_require,
