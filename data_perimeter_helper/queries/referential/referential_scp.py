@@ -75,7 +75,7 @@ You can use this query to assess and accelerate the implemention of your [**reso
 
     def export_scp_readable_format(self, df: pandas.DataFrame) -> None:
         """Export SCPs to files in a readable format"""
-        baseline_export_folder = f"{Var.result_export_folder}/scp/"
+        baseline_export_folder = f"{Var.result_export_folder}/scp"
         for policy_id, policy_name, policy_document, targets in zip(
             df['Id'],
             df['Name'],

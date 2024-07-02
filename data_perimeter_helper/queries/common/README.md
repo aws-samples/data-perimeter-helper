@@ -9,6 +9,7 @@ The `common` queries are prefixed with the keyword `common` and are **not** tied
 ## List of common queries
 
 * [common_from_public_cidr_ipv4](#query-name-common_from_public_cidr_ipv4)
+* [common_identity_perimeter_org_boundary](#query-name-common_identity_perimeter_org_boundary)
 * [common_network_perimeter_ipv4](#query-name-common_network_perimeter_ipv4)
 * [common_only_denied](#query-name-common_only_denied)
 * [common_service_linked_roles](#query-name-common_service_linked_roles)
@@ -89,6 +90,68 @@ GROUP BY
 - Remove API calls made by service-linked roles inventoried in AWS Config aggregator.
 </details>
 
+
+# Query name: common_identity_perimeter_org_boundary
+
+### Query description
+
+List AWS API calls made on resources in the selected account by principals that do **NOT** belong to the same AWS organization, filtering out calls that align with your definition of trusted identities.
+
+You can use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your resources at the organization level. You can use the global condition key [aws:PrincipalOrgId](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-principalorgid) to limit access to your resources to principals belonging to your AWS organization.
+    
+### Query results filtering
+
+Below filters are applied:
+- Remove API calls made by principals belonging to the same AWS organization as the selected account - list of account ID retrieved from AWS Organizations.
+- Remove API calls made by principals belonging to identity perimeter trusted accounts - retrieved from the `data perimeter helper` configuration file (`identity_perimeter_trusted_account` parameter).
+- Remove API calls made by identity perimeter trusted identities - retrieved from the `data perimeter helper` configuration file (`identity_perimeter_trusted_principal` parameter).
+- Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
+- Remove S3 preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration.
+- Remove API calls with errors.
+
+
+### Query details
+
+<details>
+<summary>Athena query</summary>
+
+```sql
+SELECT
+    useridentity.type as principal_type,
+    useridentity.accountid as principal_accountid,
+    useridentity.principalid,
+    eventsource,
+    eventname,
+    requestparameters,
+    resources,
+    count(*) as nb_reqs
+FROM "__ATHENA_TABLE_NAME_PLACEHOLDER__"
+WHERE
+    p_account = '{account_id}'
+    AND p_date {helper.get_athena_date_partition()}
+    -- Remove API calls made by principals belonging to the same AWS organization as the selected account - list of account ID retrieved from AWS Organizations
+    {remove_org_account_principals}
+    -- Remove API calls made by principals belonging to identity perimeter trusted accounts - retrieved from the `data perimeter helper` configuration file (`identity_perimeter_trusted_account` parameter).
+    {identity_perimeter_trusted_account}
+    -- Remove API calls made by identity perimeter trusted identities - retrieved from the `data perimeter helper` configuration file (`identity_perimeter_trusted_principal` parameter).
+    {identity_perimeter_trusted_principal_arn}
+    {identity_perimeter_trusted_principal_id}
+    -- Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
+    AND useridentity.principalid != 'AWSService'
+    -- Remove S3 preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration
+    AND eventname != 'PreflightRequest'
+    -- Remove API calls with errors
+    AND errorcode IS NULL
+GROUP BY
+    useridentity.type,
+    useridentity.accountid,
+    useridentity.principalid,
+    eventsource,
+    eventname,
+    requestparameters,
+    resources
+```
+</details>
 
 
 # Query name: common_network_perimeter_ipv4

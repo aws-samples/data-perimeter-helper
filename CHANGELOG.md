@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [1.0.4] - 2024/07/02
+
+### Added
+- You can now use the query `common_identity_perimeter_org_boundary` to list AWS API calls made on the resources in the selected account by principals that do **NOT** belong to the same AWS organization, filtering out calls that align with your definition of trusted identities. Use this query to accelerate implementation of the [**identity perimeter**](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws-allow-only-trusted-identities-to-access-company-data/) controls on your resources at the organization level.
+- When you apply queries against more than two accounts, queries' results are exported to one file per account - each file names prefixed with the targeted account ID. Now, to ease results review across multiple accounts, results are merged to a single file prefixed with `all`.
+
+### Updated
+- Timestamps are now used to manage cache expiration. When the tools import from cache it now displays the date on which it was cached.
+- The function `perf_counter` is now only used to measure execution time.
+
+
 ## [1.0.3a] - 2024/06/21
 
 ### Updated

@@ -193,12 +193,12 @@ class ResourceType:
             logger.debug(log_msg)
             return False
         # Check if the cache for this resource type has expired
-        if isinstance(Var.cache_expire_after_in_second, int) and utils.has_expired(
+        if isinstance(Var.cache_expire_after_in_second, int) and utils.has_expired_timestamp(
             timestamp, expire_second=Var.cache_expire_after_in_second
         ):
             log_msg = f"The cache for resource type `{self.type_name}` "\
-                f"generated {utils.get_elapsed_time(timestamp)} ago has "\
-                "expired. The import of this resource type is skipped."
+                f"generated the {utils.get_readable_timestamp(timestamp)} "\
+                "has expired. The import of this resource type is skipped."
             tqdm.write(
                 utils.color_string(
                     utils.Icons.INFO + log_msg,
@@ -207,14 +207,15 @@ class ResourceType:
             )
             logger.debug(log_msg)
             return False
-        start_time = utils.current_time()
+        start_time = utils.current_perf_time()
         self.dataframe = pandas.read_parquet(
             str(resource_type_metadata['path'])
         )
         self.dataframe_from_cache = True
         log_msg = f"Successfully imported resource type `{self.type_name}` "\
-            f"(generated {utils.get_elapsed_time(timestamp)} ago) from cache "\
-            f"in {utils.get_elapsed_time(start_time)}!"
+            f"generated the {utils.get_readable_timestamp(timestamp)} "\
+            "from cache "\
+            f"in {utils.get_readable_elapsed_perf_time(start_time)}!"
         tqdm.write(
             utils.color_string(
                 utils.Icons.FULL_CHECK_GREEN + log_msg,

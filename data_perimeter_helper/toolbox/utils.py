@@ -16,7 +16,8 @@ from os import (
 from time import (
     perf_counter,
     gmtime,
-    strftime
+    strftime,
+    time
 )
 from functools import (
     wraps
@@ -194,12 +195,12 @@ def decorator_elapsed_time(
     def _decorator(_fct):
         @wraps(_fct)
         def wrapper(*args, **kwargs):
-            start_time = current_time()
+            start_time = current_perf_time()
             result = _fct(*args, **kwargs)
             if (result is None) or (result is False):
                 return result
             log = color_string(
-                f"{message}{get_elapsed_time(start_time)}!",
+                f"{message}{get_readable_elapsed_perf_time(start_time)}!",
                 color
             )
             logger.debug(log)
@@ -209,29 +210,43 @@ def decorator_elapsed_time(
     return _decorator if callable(decorated_fct) else _decorator
 
 
-def current_time() -> float:
-    """Return current timestamp"""
+def current_perf_time() -> float:
+    """Returns the float value of time in seconds.
+    The reference point of the returned value is undefined, so that only the
+    difference between the results of consecutive calls is valid."""
     return perf_counter()
 
 
-def get_elasped_timestamp(start_time: float) -> float:
-    return current_time() - start_time
+def get_readable_elapsed_perf_time(start_perf_time: float) -> str:
+    """Returns a readable elapsed time using perf_counter."""
+    return strftime(
+        "%Hh:%Mm:%Ss",
+        gmtime(current_perf_time() - start_perf_time)
+    )
 
 
-def get_elapsed_time(start_time: float) -> str:
-    """Return elapsed"""
-    return strftime("%Hh:%Mm:%Ss", gmtime(get_elasped_timestamp(start_time)))
+def current_timestamp() -> float:
+    """Returns current timestamp."""
+    return time()
 
 
-def has_expired(
-    start_time: float,
+def get_readable_timestamp(timestamp: float):
+    """Returns readable date using as input a timestamp."""
+    return strftime(
+        "%d %B %Y at %Hh:%Mm:%Ss (UTC)",
+        gmtime(timestamp)
+    )
+
+
+def has_expired_timestamp(
+    start_timestamp: float,
     expire_day: int = 0,
     expire_hour: int = 0,
     expire_minute: int = 0,
     expire_second: int = 0
 ) -> bool:
     """Return True if the elapsed timestamp has expired"""
-    return get_elasped_timestamp(start_time) >\
+    return current_timestamp() - start_timestamp >\
         (expire_day * 1440 + expire_hour * 60 + expire_minute) * 60 + expire_second
 
 

@@ -219,7 +219,7 @@ def export_list_dataframe_to_excel(
     except PermissionError:
         logger.error(
             "[!] Permission error while exporting file [%s]. "
-            "Close the file to allow export.",
+            "If you have opened the file, close it to allow the export.",
             full_path
         )
         logger.info("[!] Skipping export for [%s]", full_path)
