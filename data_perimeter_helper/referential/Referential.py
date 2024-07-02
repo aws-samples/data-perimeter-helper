@@ -86,7 +86,7 @@ class Referential:
                     if exception:
                         raise exception
                     resource_type = pool[request_in_pool]['resource_type']
-                    exec_time = utils.get_elapsed_time(
+                    exec_time = utils.get_readable_elapsed_perf_time(
                         pool[request_in_pool]['start_time']  # type: ignore
                     )
                     result = request_in_pool.result()
@@ -153,7 +153,7 @@ class Referential:
             return
         registry = cls.get_resource_type_registry_items()
         metadata = {}
-        timestamp = utils.current_time()
+        timestamp = utils.current_timestamp()
         try:
             metadata = utils.read_json_file(
                 f"{Var.cache_folder_path}/metadata.json"

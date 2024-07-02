@@ -77,7 +77,7 @@ WHERE_DOCUMENTATION = {
     "AND COALESCE(NOT regexp_like(requestparameters, ':{account_id}:storage-lens|{account_id}.s3-control'), True)": "Remove API calls with the selected account ID in the request parameters (example: GetStorageLensConfiguration).",
     "AND unnested_resources.type IS DISTINCT FROM 'AWS::S3::Object'": "Remove the unnested values of the `resources` field in CloudTrail with `resource.type`=`AWS::S3::Object`. Another unnested row exists with `resources.type`=`AWS::S3::Bucket` and `resources.accountid` distinct from NULL.",
     "AND COALESCE(unnested_resources.accountid NOT IN ({list_all_account_id}), True)": "Remove API calls on S3 buckets owned by accounts belonging to the same AWS organization as the selected account.",
-    "AND eventname != 'PreflightRequest'": "Remove preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration."
+    "AND eventname != 'PreflightRequest'": "Remove S3 preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration."
 }
 
 WHERE_SKIP_DOCUMENTATION = [

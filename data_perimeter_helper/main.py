@@ -29,9 +29,6 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed as concurrent_completed
 )
-from time import (
-    perf_counter,
-)
 
 import pandas
 from tqdm import (
@@ -102,7 +99,7 @@ def export_to_file(
 
 def export_all_queries(
     list_account_id: List[str],
-    df_per_account: Dict[str, List[Dict[str, Union[str, pandas.DataFrame]]]],
+    dict_df: Dict[str, Dict[str, Dict[str, Union[str, pandas.DataFrame]]]],
     list_export_format: List[str]
 ):
     """Calls the export functions for each type of query"""
@@ -110,19 +107,56 @@ def export_all_queries(
     for account_id in list_account_id:
         export_to_file(
             list_export_format=list_export_format,
-            list_items=df_per_account[account_id],
+            list_items=list(dict_df[account_id].values()),
             account_id=account_id
         )
     # Export standalone queries
     for standalone_query_type in Var.standalone_query_types:
-        result = df_per_account.get(standalone_query_type, [])
+        result = dict_df.get(standalone_query_type, {})
         if len(result) == 0:
             continue
         export_to_file(
             list_export_format=list_export_format,
-            list_items=result,
+            list_items=list(result.values()),
             account_id=standalone_query_type
         )
+    # Merge and export all queries
+    if len(list_account_id) > 1:
+        merge_all_and_export(
+            list_account_id=list_account_id,
+            dict_df=dict_df,
+            list_export_format=list_export_format
+        )
+
+
+def merge_all_and_export(
+    list_account_id: List[str],
+    dict_df: Dict[str, Dict[str, Dict[str, Union[str, pandas.DataFrame]]]],
+    list_export_format: List[str]
+):
+    """Merges all dataframes into a single dataframe and exports it"""
+    list_df_to_export: List[Dict[str, Union[str, pandas.DataFrame]]] = []
+    dict_df_per_query: Dict[str, List[pandas.DataFrame]] = {}
+    for account_id in list_account_id:
+        for query_name, query_value in dict_df[account_id].items():
+            dict_df_per_query.setdefault(query_name, [])
+            dict_df_per_query[query_name].append(
+                query_value['dataframe'].assign(  # type: ignore
+                    queryOnAccountId=account_id
+                )
+            )
+    for query_name, list_df in dict_df_per_query.items():
+        list_df_to_export.append(
+            {
+                'name': query_name,
+                'dataframe': pandas.concat(list_df, axis=0)
+            }
+        )
+    export_to_file(
+        list_export_format=list_export_format,
+        list_items=list_df_to_export,
+        account_id="all"
+    )
 
 
 def export_referential(list_export_format: List[str]) -> None:
@@ -158,27 +192,25 @@ def query_per_account(
     standard_queries = queries.get("standard", {})
     nb_query = (len(Var.list_account_id) * len(standard_queries)) +\
         nb_standalone_query
-    df_per_account: Dict[str, List[Dict[str, Union[str, pandas.DataFrame]]]] = {}
+    dict_df: Dict[str, Dict[str, Dict[str, Union[str, pandas.DataFrame]]]] = {}
     with tqdm(
         total=nb_query, desc="Nb queries performed: ", unit="Queries"
     ) as pbar:
         # Manage standard queries
         for account_id in Var.list_account_id:
-            df_per_account[account_id] = []
+            dict_df[account_id] = {}
             for query_name, query_value in standard_queries.items():
-                start_time = perf_counter()
+                start_time = utils.current_perf_time()
                 result = query_value['instance'].submit_query(  # type: ignore
                     account_id=account_id
                 )
-                exec_time = utils.get_elapsed_time(start_time)
-                df_per_account[account_id].append(
-                    {
-                        'name': query_name,
-                        'query': result['query'],
-                        'dataframe': result['dataframe'],
-                        'exec_time': exec_time
-                    }
-                )
+                exec_time = utils.get_readable_elapsed_perf_time(start_time)
+                dict_df[account_id][query_name] = {
+                    'name': query_name,
+                    'query': result['query'],
+                    'dataframe': result['dataframe'],
+                    'exec_time': exec_time
+                }
                 log_msg = f"Completed query `{query_name}` for account"\
                     f" {account_id} in {exec_time}!"
                 pbar.write(
@@ -191,23 +223,21 @@ def query_per_account(
                 pbar.update(1)
         # Manage standalone queries not tied to an account
         for standalone_query_type in Var.standalone_query_types:
-            df_per_account[standalone_query_type] = []
+            dict_df[standalone_query_type] = {}
             standalone_queries = queries.get(standalone_query_type, {})
             for query_name, query_value in standalone_queries.items():
-                start_time = perf_counter()
+                start_time = utils.current_perf_time()
                 assert isinstance(query_value['instance'], Query)  # nosec: B101
                 result = query_value['instance'].submit_query(
                     account_id=standalone_query_type
                 )
-                exec_time = utils.get_elapsed_time(start_time)
-                df_per_account[standalone_query_type].append(
-                    {
-                        'name': query_name,
-                        'query': result['query'],
-                        'dataframe': result['dataframe'],
-                        'exec_time': exec_time
-                    }
-                )
+                exec_time = utils.get_readable_elapsed_perf_time(start_time)
+                dict_df[standalone_query_type][query_name] = {
+                    'name': query_name,
+                    'query': result['query'],
+                    'dataframe': result['dataframe'],
+                    'exec_time': exec_time
+                }
                 log_msg = f"Completed {standalone_query_type} query `{query_name}`"\
                     f" in {exec_time}!"
                 pbar.write(
@@ -219,7 +249,7 @@ def query_per_account(
                 pbar.update(1)
     export_all_queries(
         list_account_id=Var.list_account_id,
-        df_per_account=df_per_account,
+        dict_df=dict_df,
         list_export_format=list_export_format,
     )
 
@@ -237,7 +267,7 @@ def query_in_parrallel(
         list_resources=Query.depends_on_resource_type
     )
     Var.augment_variables()
-    df_per_account: Dict[str, List[Dict[str, Union[str, pandas.DataFrame]]]] = {}
+    dict_df: Dict[str, Dict[str, Dict[str, Union[str, pandas.DataFrame]]]] = {}
     pool = {}
     nb_standalone_query = 0
     for standalone_query_type in Var.standalone_query_types:
@@ -251,7 +281,7 @@ def query_in_parrallel(
         with ThreadPoolExecutor(max_workers=Var.thread_max_worker) as executor:
             # Manage standard queries
             for account_id in Var.list_account_id:
-                df_per_account[account_id] = []
+                dict_df[account_id] = {}
                 pool.update({
                     executor.submit(
                         query_value['instance'].submit_query,  # type: ignore
@@ -259,14 +289,14 @@ def query_in_parrallel(
                     ): {
                         'account_id': account_id,
                         'query_name': query_name,
-                        'start_time': perf_counter()
+                        'start_time': utils.current_perf_time()
                     }
                     for query_name, query_value in standard_queries.items()
                 })
             # Manage standalone queries not tied to an account
             for standalone_query_type in Var.standalone_query_types:
                 standalone_queries = queries.get(standalone_query_type, {})
-                df_per_account[standalone_query_type] = []
+                dict_df[standalone_query_type] = {}
                 pool.update({
                     executor.submit(
                         query_value['instance'].submit_query,  # type: ignore
@@ -274,7 +304,7 @@ def query_in_parrallel(
                     ): {
                         'account_id': standalone_query_type,
                         'query_name': query_name,
-                        'start_time': perf_counter()
+                        'start_time': utils.current_perf_time()
                     }
                     for query_name, query_value in standalone_queries.items()
                 })
@@ -284,16 +314,16 @@ def query_in_parrallel(
                     raise exception
                 account_id = str(pool[request_in_pool]['account_id'])
                 query_name = str(pool[request_in_pool]['query_name'])
-                exec_time = utils.get_elapsed_time(
-                    pool[request_in_pool]['start_time']  # type: ignore
+                exec_time = utils.get_readable_elapsed_perf_time(
+                    pool[request_in_pool]['start_time']
                 )
                 result = request_in_pool.result()
-                df_per_account[account_id].append({
+                dict_df[account_id][query_name] = {
                     'name': query_name,
                     'query': result['query'],
                     'dataframe': result['dataframe'],
                     'exec_time': exec_time
-                })
+                }
                 if account_id in Var.standalone_query_types:
                     log_msg = f"Completed {account_id} query `{query_name}`"\
                         f" in {exec_time}!"
@@ -310,7 +340,7 @@ def query_in_parrallel(
                 pbar.update(1)
     export_all_queries(
         list_account_id=Var.list_account_id,
-        df_per_account=df_per_account,
+        dict_df=dict_df,
         list_export_format=list_export_format,
     )
 

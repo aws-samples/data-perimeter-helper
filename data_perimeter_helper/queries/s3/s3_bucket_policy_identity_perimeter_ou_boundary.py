@@ -129,7 +129,7 @@ WHERE
     {identity_perimeter_trusted_principal_id}
     -- Remove API calls made by AWS service principals - `useridentity.principalid` field in CloudTrail log equals `AWSService`.
     AND useridentity.principalid != 'AWSService'
-    -- Remove preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration
+    -- Remove S3 preflight requests which are unauthenticated and used to determine the cross-origin resource sharing (CORS) configuration
     AND eventname != 'PreflightRequest'
     -- Remove API calls with errors
     AND errorcode IS NULL
