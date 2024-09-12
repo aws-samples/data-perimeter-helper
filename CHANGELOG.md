@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.5] - 2024/09/12
+
+### Added
+- You can now use the following queries:
+    - `cw_logs_scp_resource_perimeter` to list AWS API call `PutSubscriptionFilter` made by principals in the selected account on Amazon CloudWatch Logs destinations not owned by accounts in the same organization as the selected account.
+    - `dynamodb_scp_resource_perimeter` to list AWS API calls made by principals in the selected account on Amazon DynamoDB tables not owned by accounts in the same organization as the selected account.
+    - `ecr_scp_resource_perimeter` to list AWS API calls made by principals in the selected account on Amazon ECR repositories not owned by accounts in the same organization as the selected account.
+    - `events_scp_resource_perimeter` to list AWS API calls made by principals in the selected account on Amazon EventBridge buses not owned by accounts in the same organization as the selected account.
+    - `kms_scp_resource_perimeter` to list AWS API calls made by principals in the selected account on AWS KMS keys not owned by accounts in the same organization as the selected account.
+    - `secretsmanager_scp_resource_perimeter` to list AWS API calls made by principals in the selected account on AWS Secrets Manager secrets not owned by accounts in the same organization as the selected account
+    - `sns_scp_resource_perimeter` to list AWS API calls made by principals in the selected account on Amazon SNS topics not owned by accounts in the same organization as the selected account.
+    - `sqs_scp_resource_perimeter` to list AWS API calls made by principals in the selected account on Amazon SQS queues not owned by accounts in the same organization as the selected account.
+    - `sts_scp_resource_perimeter` to list AWS API calls `AssumeRole` made by principals in the selected account on AWS Identity and Access Management (IAM) roles not owned by accounts in the same organization as the selected account.
+
+
+### Updated
+- Previously, organizational unit (OU) boundaries applied only to accounts directly attached to an OU without any nested OUs beneath it. Now, you can set boundaries for accounts attached to OUs that have subsequent nested OUs within their hierarchy.
+- Bump dependencies versions.
+
 
 ## [1.0.4] - 2024/07/02
 

@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class organization_tree(ResourceType):
-    """"""
+    """Represents the organization structure"""
     cache_account_in_org_unit_boundary: Dict[str, List[str]] = {}
     root_id = None
     list_tree_path: List[List[str]] = []
@@ -83,6 +83,7 @@ class organization_tree(ResourceType):
     def get_list_parent(cls, account_id: str):
         if account_id in cls.list_parents_per_children:
             return cls.list_parents_per_children[account_id]
+        logger.debug(cls.list_parents_per_children)
         raise ValueError(
             "List of parents has **not** been retrieved for "
             f"account {account_id}"
@@ -113,7 +114,6 @@ class organization_tree(ResourceType):
         """Parse the organization tree starting from the root"""
         if parent_id is None:
             parent_id = cls.get_root_id()
-            cls.list_tree_path.append([parent_id])
         if tree_path is None:
             tree_path = [parent_id]
         if len(tree_path) > cls.QUOTA_MAX_OU + 1:
@@ -121,9 +121,7 @@ class organization_tree(ResourceType):
         list_direct_ou = cls.get_direct_children_per_type_org_api(
             parent_id, 'ORGANIZATIONAL_UNIT'
         )
-        if len(list_direct_ou) == 0:
-            cls.list_tree_path.append(tree_path)
-            return
+        cls.list_tree_path.append(tree_path)
         pool: Dict[Future, None] = {}
         with ThreadPoolExecutor(
             max_workers=Var.thread_max_worker_organizations
@@ -142,7 +140,7 @@ class organization_tree(ResourceType):
                     raise exception
 
     @classmethod
-    def get_root_id(cls):
+    def get_root_id(cls) -> str:
         """Get the root ID"""
         if cls.root_id is not None:
             return cls.root_id
@@ -251,6 +249,10 @@ class organization_tree(ResourceType):
                 list_parent_id
             )
             for list_parent_id in df['parent']
+        ]
+        df['parent_name_path'] = [
+            "/".join(list_parent_name)
+            for list_parent_name in df['parent_name']
         ]
 
     @classmethod
@@ -374,14 +376,15 @@ class organization_tree(ResourceType):
                 )
         return org_unit_boundary
 
-    @staticmethod
-    def manage_str_org_unit_input(ou_input: str) -> str:
+    @classmethod
+    def manage_str_org_unit_input(cls, ou_input: str) -> str:
         """Read the input as provided in the data perimeter configuration file
         and perform data validation and cleansing"""
         ou_input = str(ou_input)
         ou_input = ou_input.strip(" ").strip("*").strip("/")
+        # If a path is provided get the last element
         if "/" in ou_input:
-            return ou_input.split("/")[-1]
+            ou_input = ou_input.split("/")[-1]
         return ou_input
 
     @staticmethod
