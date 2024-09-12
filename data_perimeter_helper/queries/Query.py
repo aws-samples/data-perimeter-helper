@@ -673,7 +673,7 @@ UNION ALL
                     dataframe = dataframe.drop(
                         dataframe[
                             (dataframe[lookup_column] == resource_id_value)
-                            & (dataframe['sourceipaddress'].map(lambda ip: helper.is_ip_in_cidr(ip, cidr)))
+                            & (dataframe['sourceipaddress'].map(lambda ip: helper.is_ip_in_cidr(ip, cidr)))  # type: ignore
                         ].index
                     )
         return dataframe
